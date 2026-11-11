@@ -8,6 +8,18 @@ function bitrixCall(metodo, params){
   }).then(function(r){ return r.json(); })
     .then(function(j){
       if(j.error) throw new Error(j.error_description || j.error);
+      /* o item lido vem com id de opção nos campos de lista; troca pelo texto
+         antes de chegar na tela. O motivo de pausa fica de fora de propósito:
+         o <select> dele usa o id da opção como value. */
+      if(metodo === "crm.item.get" && j.result && j.result.item){
+        return carregarMetaCampos().then(function(){
+          var it = j.result.item;
+          [B.campo.categoria, B.campo.prioridade, B.campo.canal].forEach(function(cid){
+            if(it[cid]) it[cid] = labelEnum(cid, it[cid]);
+          });
+          return j;
+        });
+      }
       return j;
     });
 }
@@ -24,15 +36,20 @@ function carregarEtapas(){
     })
     .catch(function(){ /* sem etapas nomeadas, seguimos com o id cru */ });
 }
-/* uma só chamada a crm.item.fields serve a prioridade e os motivos de pausa */
+/* uma só chamada a crm.item.fields serve os campos de lista e os motivos de pausa */
 var metaCampos = null;
 function carregarMetaCampos(){
   if(metaCampos) return metaCampos;
   metaCampos = bitrixCall("crm.item.fields", {entityTypeId: B.tipo})
     .then(function(j){
       var fs = (j.result && j.result.fields) ? j.result.fields : {};
-      var p = fs[B.campo.prioridade];
-      if(p && p.items) p.items.forEach(function(i){ prioridades[i.ID] = i.VALUE; });
+      [B.campo.categoria, B.campo.prioridade, B.campo.canal].forEach(function(cid){
+        var d = fs[cid];
+        if(!d || !d.items) return;
+        var m = {};
+        d.items.forEach(function(i){ m[i.ID] = i.VALUE; });
+        enumRotulos[cid] = m;
+      });
       var d = fs[B.campo.pausaMotivo];
       motivosPausa = (d && d.items) ? d.items.map(function(i){ return {id:i.ID, nome:i.VALUE}; }) : [];
     })
@@ -77,7 +94,7 @@ function carregarChamados(){
         return {
           id: it.id,
           titulo: it.title,
-          categoria: it[campos.categoria],
+          categoria: labelCategoria(it[campos.categoria]),
           prioridade: labelPrioridade(it[campos.prioridade]),
           detalhes: it[campos.detalhes],
           etapa: et.nome || it.stageId,

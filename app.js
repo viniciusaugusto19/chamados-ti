@@ -66,37 +66,89 @@ $("capAdd").addEventListener("click", addCaptura);
 });
 
 /* ---------------- abrir chamado ---------------- */
+/* os seletores saem do próprio Bitrix: o value de cada opção é o id dela,
+   que é o que o crm.item.add espera. Nenhum id fica escrito no código. */
+var ABRIR_SELECTS = {categoria:"fCategoria", subcategoria:"fSubcategoria",
+                     prioridade:"fPrioridade", canal:"fCanal", empresa:"fEmpresa"};
+function pintarSelectsAbrir(){
+  var vazios = [];
+  Object.keys(ABRIR_SELECTS).forEach(function(nome){
+    var sel = $(ABRIR_SELECTS[nome]);
+    if(!sel) return;
+    var mapa = enumRotulos[B.campo[nome]];
+    if(!mapa || !Object.keys(mapa).length){ vazios.push(nome); return; }
+    var atual = sel.value;
+    sel.innerHTML = '<option value="">—</option>';
+    Object.keys(mapa).forEach(function(id){
+      var o = document.createElement("option");
+      o.value = id; o.textContent = mapa[id];
+      sel.appendChild(o);
+    });
+    if(atual) sel.value = atual;
+  });
+  return vazios;
+}
+function montarSelectsAbrir(){
+  var vazios = pintarSelectsAbrir();          /* desenha já com o que está em cache */
+  if(!load(K.wh, "")){
+    if(vazios.length){
+      $("abrirAviso").style.color = "var(--muted)";
+      $("abrirAviso").textContent = "Conecte o webhook na aba Bitrix uma vez para a página " +
+        "aprender as listas do portal — depois o formulário funciona mesmo sem conexão.";
+    }
+    return Promise.resolve();
+  }
+  return carregarMetaCampos().then(pintarSelectsAbrir);   /* atualiza com o que veio agora */
+}
 (function(){
-  var sel = $("fPrioridade");
-  sel.innerHTML = '<option value="">—</option>';
-  SLA.forEach(function(s){ var o=document.createElement("option"); o.textContent=s.n; sel.appendChild(o); });
   var se = $("fEtapa");
   ETAPAS.forEach(function(e){ var o=document.createElement("option"); o.textContent=e; se.appendChild(o); });
 })();
 $("fPrioridade").addEventListener("change", function(){
-  var s = slaDe(this.value);
+  /* o value é o id da opção; o prazo vem do rótulo */
+  var s = slaDeLabel(this.value);
   $("slaHint").textContent = s ? s.t : "Escolha a prioridade para ver o prazo.";
 });
 $("btnLimpar").addEventListener("click", function(){
-  ["fEmpresa","fCanal","fCategoria","fPrioridade","fDetalhes","fSolicitante","fEquipamento","fResponsavel","fTipo"]
-    .forEach(function(id){ $(id).value = ""; });
+  ["fEmpresa","fCanal","fCategoria","fSubcategoria","fPrioridade","fDetalhes",
+   "fSolicitante","fEquipamento","fResponsavel","fTipo"]
+    .forEach(function(id){ if($(id)) $(id).value = ""; });
   $("slaHint").textContent = "Escolha a prioridade para ver o prazo.";
   $("abrirAviso").textContent = "";
 });
-$("btnSalvarChamado").addEventListener("click", function(){
-  var req = [["fEmpresa","Empresa"],["fCanal","Canal"],["fCategoria","Categoria"],
-             ["fPrioridade","Prioridade"],["fDetalhes","Detalhes"]];
-  var faltam = req.filter(function(r){ return !$(r[0]).value.trim(); }).map(function(r){ return r[1]; });
-  if(faltam.length){
-    $("abrirAviso").textContent = "Faltam: " + faltam.join(", ");
-    $("abrirAviso").style.color = "var(--crit)";
-    return;
-  }
+
+/* o Bitrix exige estes cinco para salvar; a prioridade entra na conta porque
+   sem ela o chamado nasce fora do controle de SLA */
+var OBRIGATORIOS = [["fCategoria","Categoria"], ["fSubcategoria","Subcategoria"],
+                    ["fCanal","Canal de abertura"], ["fDetalhes","Detalhes"],
+                    ["fPrioridade","Prioridade"]];
+function faltandoNoFormulario(){
+  return OBRIGATORIOS.filter(function(r){ return !String($(r[0]).value || "").trim(); })
+                     .map(function(r){ return r[1]; });
+}
+function camposDoNovoChamado(){
+  var c = B.campo, f = {};
+  f.title = $("fDetalhes").value.trim().slice(0,60);
+  f.opened = true;                       /* "Disponível para todos", obrigatório */
+  f.categoryId = 27;                     /* funil dos chamados técnicos */
+  f[c.categoria]    = $("fCategoria").value;
+  f[c.subcategoria] = $("fSubcategoria").value;
+  f[c.canal]        = $("fCanal").value;
+  f[c.prioridade]   = $("fPrioridade").value;
+  f[c.detalhes]     = $("fDetalhes").value.trim();
+  if($("fEmpresa").value) f[c.empresa] = $("fEmpresa").value;
+  var eq = String($("fEquipamento").value || "").trim();
+  if(eq) f[c.equipamento] = [eq];        /* campo múltiplo: vai array */
+  return f;
+}
+function salvarLocalmente(aviso){
   var c = {
     id: "local-" + Date.now(),
     titulo: $("fDetalhes").value.trim().slice(0,60),
-    empresa: $("fEmpresa").value, canal: $("fCanal").value,
-    categoria: $("fCategoria").value, prioridade: $("fPrioridade").value,
+    empresa: $("fEmpresa").value,
+    canal: labelEnum(B.campo.canal, $("fCanal").value),
+    categoria: labelCategoria($("fCategoria").value),
+    prioridade: labelPrioridade($("fPrioridade").value),
     etapa: $("fEtapa").value || ETAPAS[0],
     solicitante: $("fSolicitante").value, equipamento: $("fEquipamento").value,
     detalhes: $("fDetalhes").value, aberto: new Date().toISOString(),
@@ -104,7 +156,42 @@ $("btnSalvarChamado").addEventListener("click", function(){
   };
   chamados.unshift(c); save(K.chamados, chamados);
   $("abrirAviso").style.color = "var(--good)";
-  $("abrirAviso").textContent = "Salvo nesta página. Para gravar no Bitrix, conecte o webhook.";
+  $("abrirAviso").textContent = aviso;
   $("btnLimpar").click();
-  toast("Chamado salvo.");
+  toast("Chamado salvo nesta página.");
+}
+$("btnSalvarChamado").addEventListener("click", function(){
+  var btn = this;
+  var faltam = faltandoNoFormulario();
+  if(faltam.length){
+    $("abrirAviso").style.color = "var(--crit)";
+    $("abrirAviso").textContent = "Faltam: " + faltam.join(", ");
+    return;
+  }
+  if(!load(K.wh, "")){
+    salvarLocalmente("Salvo nesta página. Para criar no Bitrix, conecte o webhook na aba Bitrix.");
+    return;
+  }
+  btn.disabled = true;
+  $("abrirAviso").style.color = "var(--muted)";
+  $("abrirAviso").textContent = "Criando no Bitrix...";
+  bitrixCall("crm.item.add", {entityTypeId: B.tipo, fields: camposDoNovoChamado()})
+    .then(function(j){
+      var novo = j.result && j.result.item ? j.result.item : null;
+      if(!novo || !novo.id) throw new Error("o Bitrix respondeu sem o número do chamado");
+      $("abrirAviso").style.color = "var(--good)";
+      $("abrirAviso").innerHTML = 'Chamado <b>#' + esc(novo.id) + '</b> criado no Bitrix. ' +
+        '<a href="' + B.portal + '/page/chamados/chamado_tecnico/type/' + B.tipo +
+        '/details/' + esc(novo.id) + '/" target="_blank" rel="noopener">abrir no portal</a>';
+      toast("Chamado #" + novo.id + " criado.");
+      $("fDetalhes").value = ""; $("fSolicitante").value = ""; $("fEquipamento").value = "";
+      carregarChamados();
+    })
+    .catch(function(e){
+      /* nada foi criado: o formulário fica como está para não perder o que foi digitado */
+      $("abrirAviso").style.color = "var(--crit)";
+      $("abrirAviso").textContent = "Não criei o chamado: " + e.message +
+        " — o que você digitou continua aqui.";
+    })
+    .then(function(){ btn.disabled = false; });
 });

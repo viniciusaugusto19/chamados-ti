@@ -24,20 +24,31 @@ function carregarEtapas(){
     })
     .catch(function(){ /* sem etapas nomeadas, seguimos com o id cru */ });
 }
+/* uma só chamada a crm.item.fields serve a prioridade e os motivos de pausa */
+var metaCampos = null;
+function carregarMetaCampos(){
+  if(metaCampos) return metaCampos;
+  metaCampos = bitrixCall("crm.item.fields", {entityTypeId: B.tipo})
+    .then(function(j){
+      var fs = (j.result && j.result.fields) ? j.result.fields : {};
+      var p = fs[B.campo.prioridade];
+      if(p && p.items) p.items.forEach(function(i){ prioridades[i.ID] = i.VALUE; });
+      var d = fs[B.campo.pausaMotivo];
+      motivosPausa = (d && d.items) ? d.items.map(function(i){ return {id:i.ID, nome:i.VALUE}; }) : [];
+    })
+    .catch(function(){ /* segue sem os rótulos */ });
+  return metaCampos;
+}
 /* opções do campo "Ticket pausado motivo" — lista fechada no Bitrix */
 function carregarMotivosPausa(){
-  if(motivosPausa.length) return Promise.resolve();
-  return bitrixCall("crm.item.fields", {entityTypeId: B.tipo})
-    .then(function(j){
-      var d = j.result && j.result.fields ? j.result.fields[B.campo.pausaMotivo] : null;
-      motivosPausa = (d && d.items) ? d.items.map(function(i){ return {id:i.ID, nome:i.VALUE}; }) : [];
-      var sel = $("dPausaMotivo");
-      sel.innerHTML = '<option value="">—</option>';
-      motivosPausa.forEach(function(m){
-        var o = document.createElement("option"); o.value = m.id; o.textContent = m.nome; sel.appendChild(o);
-      });
-    })
-    .catch(function(){ /* segue sem opções */ });
+  return carregarMetaCampos().then(function(){
+    var sel = $("dPausaMotivo");
+    if(!sel) return;
+    sel.innerHTML = '<option value="">—</option>';
+    motivosPausa.forEach(function(m){
+      var o = document.createElement("option"); o.value = m.id; o.textContent = m.nome; sel.appendChild(o);
+    });
+  });
 }
 function carregarChamados(){
   var st = $("statusCarga");
@@ -58,6 +69,7 @@ function carregarChamados(){
     });
   }
   carregarEtapas()
+    .then(function(){ return carregarMetaCampos(); })
     .then(function(){ return pagina(0); })
     .then(function(){
       var deBitrix = todos.map(function(it){
@@ -66,7 +78,7 @@ function carregarChamados(){
           id: it.id,
           titulo: it.title,
           categoria: it[campos.categoria],
-          prioridade: it[campos.prioridade],
+          prioridade: labelPrioridade(it[campos.prioridade]),
           detalhes: it[campos.detalhes],
           etapa: et.nome || it.stageId,
           semantica: et.semantica,

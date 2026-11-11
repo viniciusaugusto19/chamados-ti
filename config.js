@@ -37,9 +37,17 @@ var etapasBitrix = {};   /* stageId -> {nome, semantica} */
 var etapasLista  = [];   /* [{id, nome, semantica}] na ordem do funil */
 var motivosPausa = [];   /* [{id, nome}] do campo Ticket pausado motivo */
 var itemAtual    = null; /* chamado carregado na aba Documentar */
+var prioridades  = {};   /* id da opção -> rótulo, vindo de crm.item.fields */
+
+/* o Bitrix devolve a prioridade como id da opção, não como texto */
+function labelPrioridade(v){
+  if(v === null || v === undefined || v === "") return "";
+  return prioridades[v] || String(v);
+}
 
 /* a prioridade no Bitrix vem com o SLA escrito junto; casamos pelo começo do rótulo */
 function slaDeLabel(label){
+  label = labelPrioridade(label);
   if(!label) return null;
   var txt = String(label);
   var achado = null;
@@ -49,6 +57,7 @@ function slaDeLabel(label){
   return achado;
 }
 function rotuloCurto(label){
+  label = labelPrioridade(label);
   var s = slaDeLabel(label);
   return s ? s.n : (label ? String(label).split(",")[0].slice(0,22) : "—");
 }

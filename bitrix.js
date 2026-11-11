@@ -14,7 +14,8 @@ function bitrixCall(metodo, params){
       if(metodo === "crm.item.get" && j.result && j.result.item){
         return carregarMetaCampos().then(function(){
           var it = j.result.item;
-          [B.campo.categoria, B.campo.prioridade, B.campo.canal].forEach(function(cid){
+          CAMPOS_LISTA.forEach(function(n){
+            var cid = B.campo[n];
             if(it[cid]) it[cid] = labelEnum(cid, it[cid]);
           });
           return j;
@@ -43,7 +44,7 @@ function carregarMetaCampos(){
   metaCampos = bitrixCall("crm.item.fields", {entityTypeId: B.tipo})
     .then(function(j){
       var fs = (j.result && j.result.fields) ? j.result.fields : {};
-      [B.campo.categoria, B.campo.prioridade, B.campo.canal].forEach(function(cid){
+      CAMPOS_LISTA.map(function(n){ return B.campo[n]; }).forEach(function(cid){
         var d = fs[cid];
         if(!d || !d.items) return;
         var m = {};
@@ -52,6 +53,8 @@ function carregarMetaCampos(){
       });
       var d = fs[B.campo.pausaMotivo];
       motivosPausa = (d && d.items) ? d.items.map(function(i){ return {id:i.ID, nome:i.VALUE}; }) : [];
+      /* guarda as listas para a tela continuar utilizável sem webhook */
+      save(K.enums, enumRotulos);
     })
     .catch(function(){ /* segue sem os rótulos */ });
   return metaCampos;

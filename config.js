@@ -21,8 +21,15 @@ var B = {
   portal: "https://straylight.bitrix24.com.br",
   campo: {
     categoria:   "ufCrm11_1751054181669",
+    subcategoria:"ufCrm11_1791217994942",
     prioridade:  "ufCrm11_1759935160305",
     canal:       "ufCrm11_1755618058164",
+    /* dos dois campos "Empresa" do portal, o escolhido foi a lista fixa
+       (Astro34 / Fastco / Spectral Solutions), não o vínculo com o CRM */
+    empresa:     "ufCrm11_1767980057027",
+    /* "Equipamento cliente" ufCrm11_1755633226 está zerado em 150 chamados;
+       o que vale é este, e ele é múltiplo */
+    equipamento: "ufCrm11_1756228195",
     detalhes:    "ufCrm11_1751284890540",
     descricao:   "ufCrm11_1724351543085",
     resolucao:   "ufCrm11_1751290355233",
@@ -37,7 +44,9 @@ var etapasBitrix = {};   /* stageId -> {nome, semantica} */
 var etapasLista  = [];   /* [{id, nome, semantica}] na ordem do funil */
 var motivosPausa = [];   /* [{id, nome}] do campo Ticket pausado motivo */
 var itemAtual    = null; /* chamado carregado na aba Documentar */
-var enumRotulos  = {};   /* campo -> {id da opção: rótulo}, vindo de crm.item.fields */
+/* campo -> {id da opção: rótulo}, vindo do crm.item.fields.
+   Hidratado do cache em util.js, que é quem define o storage. */
+var enumRotulos  = {};
 
 /* campos de lista voltam do Bitrix como id da opção, não como texto */
 function labelEnum(campo, v){
@@ -47,6 +56,9 @@ function labelEnum(campo, v){
 }
 function labelPrioridade(v){ return labelEnum(B.campo.prioridade, v); }
 function labelCategoria(v){ return labelEnum(B.campo.categoria, v); }
+
+/* campos de lista que a tela monta sozinha a partir do crm.item.fields */
+var CAMPOS_LISTA = ["categoria","subcategoria","prioridade","canal","empresa"];
 
 /* a prioridade no Bitrix vem com o SLA escrito junto; casamos pelo começo do rótulo */
 function slaDeLabel(label){

@@ -117,15 +117,24 @@ function pintarChamado(d){
   if(d.detalhes){ $("tkDetalhe").textContent = d.detalhes; $("tkDetalhe").hidden = false; }
   else { $("tkDetalhe").hidden = true; }
 
-  $("tkMeta").innerHTML =
-    metaLinha("Categoria", d.categoria) +
-    metaLinha("Prioridade", rotuloCurto(d.prioridade)) +
-    metaLinha("Aberto por", d.criadoPorTxt) +
-    metaLinha("Aberto em", d.abertoTxt) +
-    metaLinha("Responsável", d.responsavelTxt) +
-    metaLinha("Etapa atual", d.etapa) +
-    metaLinha("Nesta etapa desde", d.movidoTxt) +
-    metaLinha("Última alteração", d.atualizadoTxt);
+  /* linha sem valor sai da lista, em vez de virar uma fileira de travessões */
+  var linhas = [
+    ["Empresa",           d.empresa],
+    ["Categoria",         d.categoria],
+    ["Subcategoria",      d.subcategoria],
+    ["Prioridade",        d.prioridade ? rotuloCurto(d.prioridade) : ""],
+    ["Canal de abertura", d.canal],
+    ["Equipamento",       d.equipamento],
+    ["Aberto por",        d.criadoPorTxt],
+    ["Aberto em",         d.abertoTxt],
+    ["Responsável",       d.responsavelTxt],
+    ["Etapa atual",       d.etapa],
+    ["Nesta etapa desde", d.movidoTxt],
+    ["Última alteração",  d.atualizadoTxt]
+  ];
+  $("tkMeta").innerHTML = linhas
+    .filter(function(l){ return l[1] !== undefined && l[1] !== null && String(l[1]).trim() !== ""; })
+    .map(function(l){ return metaLinha(l[0], l[1]); }).join("");
   $("dContexto").hidden = false;
 }
 /* linha do tempo das etapas, montada depois que o chamado já apareceu */
@@ -217,6 +226,10 @@ function carregarItem(id){
       ref: "#" + it.id,
       titulo: it.title,
       categoria: it[c.categoria],
+      subcategoria: it[c.subcategoria],
+      empresa: it[c.empresa],
+      canal: it[c.canal],
+      equipamento: [].concat(it[c.equipamento] || []).filter(Boolean).join(", "),
       prioridade: it[c.prioridade],
       etapa: et.nome || it.stageId,
       detalhes: it[c.detalhes],

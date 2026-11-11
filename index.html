@@ -230,23 +230,12 @@ td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
     <div class="hint">O SLA é contado em horas úteis, como na tabela do Bitrix — não em dias. Padrão 08:00&ndash;17:00, sem intervalo e sem feriados. Ajuste se a jornada de vocês for outra — o painel recalcula.</div>
   </div>
 
-  <div class="card">
-    <h3>Origem dos dados</h3>
-    <div style="display:flex;gap:11px;align-items:center;flex-wrap:wrap">
-      <button class="primary" id="btnCarregar" type="button">Carregar do Bitrix</button>
-      <label style="display:flex;align-items:center;gap:7px;font-weight:500;margin:0">
-        <input type="checkbox" id="chkConcluidos" style="width:auto"> mostrar concluídos
-      </label>
-      <span class="hint" id="statusCarga" style="margin-top:0">Conecte o Bitrix para puxar os chamados reais.</span>
-    </div>
-  </div>
-
   <div class="tablewrap">
     <table>
       <thead>
         <tr>
-          <th>Chamado</th><th>Categoria</th><th>Prioridade</th>
-          <th>Etapa</th><th class="num">Aberto há</th><th class="num">SLA</th><th>Situação</th><th></th>
+          <th>Chamado</th><th>Empresa</th><th>Categoria</th><th>Prioridade</th>
+          <th>Etapa</th><th class="num">Aberto há</th><th class="num">SLA</th><th>Situação</th>
         </tr>
       </thead>
       <tbody id="tbChamados"></tbody>
@@ -481,54 +470,6 @@ var SLA = [
 var ETAPAS = ["Registro de Chamado","Disparo de alertas","Análise do chamado",
               "Em atendimento","Aguardando terceiros (Pausa)","Automação de Conclusão","Concluir"];
 
-/* ---------------- Bitrix: processo 1032 (Chamado Técnico) ---------------- */
-var B = {
-  tipo: 1032,
-  portal: "https://straylight.bitrix24.com.br",
-  campo: {
-    categoria:   "ufCrm11_1751054181669",
-    prioridade:  "ufCrm11_1759935160305",
-    canal:       "ufCrm11_1755618058164",
-    detalhes:    "ufCrm11_1751284890540",
-    descricao:   "ufCrm11_1724351543085",
-    resolucao:   "ufCrm11_1751290355233",
-    testes:      "ufCrm11_1755618106980",
-    passos:      "ufCrm11_1755615692022",
-    pausaMotivo: "ufCrm11_1764332637629",
-    pausaIni:    "ufCrm11_1755624999423",
-    pausaFim:    "ufCrm11_1755624321694"
-  }
-};
-var etapasBitrix = {};   /* stageId -> {nome, semantica} */
-
-function bitrixCall(metodo, params){
-  var wh = load(K.wh, "");
-  if(!wh) return Promise.reject(new Error("sem webhook"));
-  return fetch(wh + "/" + metodo + ".json", {
-    method:"POST", headers:{"Content-Type":"application/json"},
-    body: JSON.stringify(params || {})
-  }).then(function(r){ return r.json(); })
-    .then(function(j){
-      if(j.error) throw new Error(j.error_description || j.error);
-      return j;
-    });
-}
-
-/* a prioridade no Bitrix vem com o SLA escrito junto; casamos pelo começo do rótulo */
-function slaDeLabel(label){
-  if(!label) return null;
-  var txt = String(label);
-  var achado = null;
-  for(var i=0;i<SLA.length;i++){
-    if(txt.indexOf(SLA[i].n) === 0 && (!achado || SLA[i].n.length > achado.n.length)) achado = SLA[i];
-  }
-  return achado;
-}
-function rotuloCurto(label){
-  var s = slaDeLabel(label);
-  return s ? s.n : (label ? String(label).split(",")[0].slice(0,22) : "—");
-}
-
 /* ---------------- storage ---------------- */
 var K = {fila:"ctip.fila", chamados:"ctip.chamados", wh:"ctip.wh", tema:"ctip.tema", jornada:"ctip.jornada"};
 function load(k, fb){ try{ var v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; }catch(e){ return fb; } }
@@ -699,119 +640,41 @@ $("btnSalvarChamado").addEventListener("click", function(){
   if(j){ $("jorIni").value=j.ini; $("jorFim").value=j.fim; $("jorDias").value=j.dias; } })();
 
 function situacao(c){
-  var s = slaDeLabel(c.prioridade) || slaDe(c.prioridade);
+  var s = slaDe(c.prioridade);
+  if(!s) return {cls:"neutral", txt:"sem SLA", pct:0, gasto:0, limite:0};
   var gasto = horasUteis(new Date(c.aberto), new Date());
-  if(!s) return {cls:"neutral", txt:"sem SLA", gasto:gasto, limite:0};
   var pct = s.h ? gasto / s.h : 0;
-  var base = {gasto:gasto, limite:s.h};
-  if(c.semantica === "S" || c.etapa === "Concluir")
-    return {cls:"ok", txt:"concluído", gasto:gasto, limite:s.h};
-  if(c.semantica === "F")
-    return {cls:"neutral", txt:"encerrado", gasto:gasto, limite:s.h};
-  if(/pausa|aguardando terceiros/i.test(c.etapa || ""))
-    return {cls:"neutral", txt:"pausado", gasto:gasto, limite:s.h};
-  if(pct >= 1) return {cls:"crit", txt:"estourou", gasto:gasto, limite:s.h};
-  if(pct >= 0.75) return {cls:"warn", txt:"perto do prazo", gasto:gasto, limite:s.h};
-  return {cls:"ok", txt:"no prazo", gasto:gasto, limite:s.h};
-}
-function visiveis(){
-  var mostrarTodos = $("chkConcluidos") && $("chkConcluidos").checked;
-  return chamados.filter(function(c){
-    if(mostrarTodos) return true;
-    return !(c.semantica === "S" || c.semantica === "F" || c.etapa === "Concluir");
-  });
+  if(c.etapa === "Concluir") return {cls:"ok", txt:"concluído", pct:pct, gasto:gasto, limite:s.h};
+  if(c.etapa === "Aguardando terceiros (Pausa)") return {cls:"neutral", txt:"pausado", pct:pct, gasto:gasto, limite:s.h};
+  if(pct >= 1) return {cls:"crit", txt:"estourou", pct:pct, gasto:gasto, limite:s.h};
+  if(pct >= 0.75) return {cls:"warn", txt:"perto do prazo", pct:pct, gasto:gasto, limite:s.h};
+  return {cls:"ok", txt:"no prazo", pct:pct, gasto:gasto, limite:s.h};
 }
 function renderPainel(){
-  var lista = visiveis();
   var tb = $("tbChamados"); tb.innerHTML = "";
-  $("painelVazio").hidden = lista.length > 0;
+  $("painelVazio").hidden = chamados.length > 0;
   var n = {crit:0, warn:0, ok:0};
-  lista.sort(function(a,b){
-    var sa = situacao(a), sb = situacao(b);
-    var pa = sa.limite ? sa.gasto/sa.limite : 0, pb = sb.limite ? sb.gasto/sb.limite : 0;
-    return pb - pa;
-  });
-  lista.forEach(function(c){
+  chamados.forEach(function(c){
     var s = situacao(c);
     if(s.cls==="crit") n.crit++; else if(s.cls==="warn") n.warn++; else if(s.cls==="ok") n.ok++;
-    var link = c.origem === "bitrix"
-      ? '<a href="' + B.portal + '/crm/type/' + B.tipo + '/details/' + encodeURIComponent(c.id) + '/" target="_blank" rel="noopener" class="mini">abrir</a>'
-      : '<span class="tag neutral">local</span>';
     var tr = document.createElement("tr");
     tr.innerHTML =
-      "<td>" + esc(c.titulo || ("#" + c.id)) + "</td>" +
-      "<td>" + esc(c.categoria || "—") + "</td>" +
-      "<td>" + esc(rotuloCurto(c.prioridade)) + "</td>" +
-      "<td>" + esc(c.etapa || "—") + "</td>" +
+      "<td>" + esc(c.titulo || c.id) + "</td>" +
+      "<td>" + esc(c.empresa) + "</td>" +
+      "<td>" + esc(c.categoria) + "</td>" +
+      "<td>" + esc(c.prioridade) + "</td>" +
+      "<td>" + esc(c.etapa) + "</td>" +
       '<td class="num">' + s.gasto.toFixed(1) + " h</td>" +
       '<td class="num">' + (s.limite ? s.limite + " h" : "—") + "</td>" +
-      '<td><span class="tag ' + s.cls + '">' + s.txt + "</span></td>" +
-      '<td style="text-align:right">' + link + "</td>";
+      '<td><span class="tag ' + s.cls + '">' + s.txt + "</span></td>";
     tb.appendChild(tr);
   });
   $("kpis").innerHTML =
-    '<div class="kpi"><b>' + lista.length + "</b><span>em aberto</span></div>" +
+    '<div class="kpi"><b>' + chamados.length + "</b><span>abertos</span></div>" +
     '<div class="kpi crit"><b>' + n.crit + "</b><span>estourados</span></div>" +
     '<div class="kpi warn"><b>' + n.warn + "</b><span>perto do prazo</span></div>" +
     '<div class="kpi good"><b>' + n.ok + "</b><span>no prazo</span></div>" +
     '<div class="kpi"><b>' + fila.length + "</b><span>na fila de captura</span></div>";
-}
-
-/* ---------------- carga do Bitrix ---------------- */
-function carregarEtapas(){
-  return bitrixCall("crm.status.list", {filter:{"ENTITY_ID":"DYNAMIC_" + B.tipo + "_STAGE_27"}})
-    .then(function(j){
-      (j.result || []).forEach(function(s){
-        etapasBitrix[s.STATUS_ID] = {nome: s.NAME, semantica: s.SEMANTICS};
-      });
-    })
-    .catch(function(){ /* sem etapas nomeadas, seguimos com o id cru */ });
-}
-function carregarChamados(){
-  var st = $("statusCarga");
-  if(!load(K.wh, "")){ st.textContent = "Sem webhook. Conecte na aba Bitrix."; return; }
-  st.textContent = "Carregando...";
-  var todos = [], campos = B.campo;
-  function pagina(start){
-    return bitrixCall("crm.item.list", {
-      entityTypeId: B.tipo,
-      order: {id: "DESC"},
-      start: start,
-      select: ["id","title","stageId","createdTime","assignedById",
-               campos.categoria, campos.prioridade, campos.detalhes]
-    }).then(function(j){
-      var itens = (j.result && j.result.items) ? j.result.items : [];
-      todos = todos.concat(itens);
-      if(j.next && todos.length < 300) return pagina(j.next);
-    });
-  }
-  carregarEtapas()
-    .then(function(){ return pagina(0); })
-    .then(function(){
-      var deBitrix = todos.map(function(it){
-        var et = etapasBitrix[it.stageId] || {};
-        return {
-          id: it.id,
-          titulo: it.title,
-          categoria: it[campos.categoria],
-          prioridade: it[campos.prioridade],
-          detalhes: it[campos.detalhes],
-          etapa: et.nome || it.stageId,
-          semantica: et.semantica,
-          aberto: it.createdTime,
-          origem: "bitrix"
-        };
-      });
-      var locais = chamados.filter(function(c){ return c.origem !== "bitrix"; });
-      chamados = deBitrix.concat(locais);
-      save(K.chamados, chamados);
-      st.textContent = deBitrix.length + " chamados lidos do Bitrix em " +
-        new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}) + ".";
-      renderPainel(); renderSelectChamados();
-    })
-    .catch(function(e){
-      st.textContent = "Falhou: " + e.message + " — confira o webhook na aba Bitrix.";
-    });
 }
 
 /* ---------------- documentar ---------------- */
@@ -961,17 +824,8 @@ $("btnTestar").addEventListener("click", function(){
     });
 });
 
-/* ---------------- carga: botão, filtro e automático ---------------- */
-var jaCarregou = false;
-$("btnCarregar").addEventListener("click", function(){ jaCarregou = true; carregarChamados(); });
-$("chkConcluidos").addEventListener("change", renderPainel);
-document.querySelector('nav.tabs button[data-tab="painel"]').addEventListener("click", function(){
-  if(!jaCarregou && load(K.wh, "")){ jaCarregou = true; carregarChamados(); }
-});
-
 /* ---------------- início ---------------- */
 renderFila(); renderPainel(); renderSelectChamados();
-if(load(K.wh, "")) $("statusCarga").textContent = "Webhook conectado. Abra o painel para carregar.";
 $("capQuem").focus();
 })();
 </script>

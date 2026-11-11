@@ -25,18 +25,41 @@ $("btnTema").addEventListener("click", function(){
 function renderFila(){
   var ul = $("fila"); ul.innerHTML = "";
   $("filaVazia").hidden = fila.length > 0;
-  $("pillFila").textContent = fila.length;
+  /* o número na aba é o que ainda falta virar chamado, não o tamanho da lista */
+  $("pillFila").textContent = fila.filter(function(it){ return !it.chamado; }).length;
   fila.forEach(function(item, i){
     var li = document.createElement("li");
+    var virado = !!item.chamado;
+    if(virado) li.className = "feito";
+    var selo = "";
+    if(virado){
+      selo = item.chamado === "local"
+        ? '<span class="tag neutral">virou chamado local</span>'
+        : '<a class="tag ok" target="_blank" rel="noopener" href="' + B.portal +
+          '/crm/type/' + B.tipo + '/details/' + encodeURIComponent(item.chamado) +
+          '/">virou o chamado #' + esc(item.chamado) + "</a>";
+    }
     li.innerHTML =
-      '<div class="txt"><b>' + esc(item.quem || "sem nome") + '</b> — ' + esc(item.oque) + '</div>' +
+      '<div class="txt"><b>' + esc(item.quem || "sem nome") + '</b> — ' + esc(item.oque) +
+        (selo ? '<div class="virou">' + selo + "</div>" : "") + "</div>" +
       '<div class="when">' + esc(item.hora) + '</div>' +
       '<div class="acts">' +
-        '<button class="mini" data-virar="' + i + '">virar chamado</button>' +
+        (virado ? "" : '<button class="mini" data-virar="' + i + '">virar chamado</button>') +
         '<button class="mini danger" data-del="' + i + '">apagar</button>' +
       '</div>';
     ul.appendChild(li);
   });
+}
+/* qual anotação está sendo transformada agora. Guardamos o carimbo de hora
+   porque o índice muda se alguém apagar outra anotação no meio do caminho. */
+var capturaEmUso = null;
+function marcarCapturaComoVirada(idChamado){
+  if(!capturaEmUso) return;
+  for(var i=0;i<fila.length;i++){
+    if(fila[i].iso === capturaEmUso){ fila[i].chamado = idChamado; break; }
+  }
+  capturaEmUso = null;
+  save(K.fila, fila); renderFila();
 }
 $("fila").addEventListener("click", function(e){
   var v = e.target.getAttribute("data-virar"), d = e.target.getAttribute("data-del");
@@ -45,6 +68,7 @@ $("fila").addEventListener("click", function(e){
   }
   if(v !== null && v !== undefined){
     var it = fila[parseInt(v,10)];
+    capturaEmUso = it.iso || null;
     $("fSolicitante").value = it.quem || "";
     /* o que foi anotado na captura já é um nome curto: serve de título */
     $("fTitulo").value = (it.oque || "").slice(0, 100);
@@ -117,6 +141,9 @@ $("btnLimpar").addEventListener("click", function(){
     .forEach(function(id){ if($(id)) $(id).value = ""; });
   $("slaHint").textContent = "Escolha a prioridade para ver o prazo.";
   $("abrirAviso").textContent = "";
+  /* soltou o formulário: a anotação de origem deixa de estar em jogo, senão o
+     próximo chamado criado marcaria a anotação errada como virada */
+  capturaEmUso = null;
 });
 
 /* o Bitrix exige categoria, subcategoria, canal e detalhes. O nome e a
@@ -159,6 +186,7 @@ function salvarLocalmente(aviso){
     origem: "local", doc: null
   };
   chamados.unshift(c); save(K.chamados, chamados);
+  marcarCapturaComoVirada("local");
   $("abrirAviso").style.color = "var(--good)";
   $("abrirAviso").textContent = aviso;
   $("btnLimpar").click();
@@ -188,6 +216,7 @@ $("btnSalvarChamado").addEventListener("click", function(){
         '<a href="' + B.portal + '/page/chamados/chamado_tecnico/type/' + B.tipo +
         '/details/' + esc(novo.id) + '/" target="_blank" rel="noopener">abrir no portal</a>';
       toast("Chamado #" + novo.id + " criado.");
+      marcarCapturaComoVirada(novo.id);   /* a anotação não volta para a fila */
       $("fTitulo").value = ""; $("fDetalhes").value = "";
       $("fSolicitante").value = ""; $("fEquipamento").value = "";
       carregarChamados();

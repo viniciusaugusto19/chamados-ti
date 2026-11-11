@@ -247,8 +247,27 @@ ul.items .x:hover{background:var(--crit-bg);color:var(--crit)}
 
 .meta-list{display:flex;flex-direction:column;gap:9px;font-size:.84rem}
 .meta-list div{display:flex;gap:10px;align-items:baseline}
-.meta-list dt{flex:none;width:92px;color:var(--muted);font-size:.78rem}
+.meta-list dt{flex:none;width:118px;color:var(--muted);font-size:.78rem}
 .meta-list dd{margin:0;min-width:0;word-break:break-word}
+
+/* linha do tempo das etapas */
+.hist{list-style:none;margin:0;padding:0;position:relative}
+.hist::before{
+  content:"";position:absolute;left:5px;top:6px;bottom:6px;
+  width:1px;background:var(--line)
+}
+.hist li{
+  position:relative;padding:0 0 13px 20px;font-size:.83rem;
+  display:flex;flex-direction:column;gap:2px
+}
+.hist li:last-child{padding-bottom:0}
+.hist li::before{
+  content:"";position:absolute;left:1px;top:5px;width:9px;height:9px;
+  border-radius:50%;background:var(--surface);border:2px solid var(--line)
+}
+.hist li:last-child::before{border-color:var(--accent)}
+.hist-quando{color:var(--muted);font-size:.75rem}
+.hist-etapa{font-weight:500}
 
 #tab-documentar{padding-bottom:92px}
 .barra-acao{

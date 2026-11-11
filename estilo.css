@@ -130,6 +130,11 @@ details.fold>.fold-body{padding:0 14px 14px}
   display:flex;gap:11px;align-items:flex-start;
   background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:10px 12px;
 }
+.queue li.feito{opacity:.72;border-style:dashed}
+.queue li.feito .txt > b{font-weight:600}
+.queue .virou{margin-top:6px}
+.queue .virou .tag{text-decoration:none}
+.queue .virou a.tag:hover{filter:brightness(.94);text-decoration:underline}
 .queue .txt{flex:1;min-width:0}
 .queue .when{font-family:var(--mono);font-size:.72rem;color:var(--muted);white-space:nowrap}
 .queue .acts{display:flex;gap:6px;flex:none}

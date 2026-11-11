@@ -87,7 +87,8 @@
       <thead>
         <tr>
           <th>Chamado</th><th>Categoria</th><th>Prioridade</th>
-          <th>Etapa</th><th class="num">Aberto há</th><th class="num">SLA</th><th>Situação</th><th></th>
+          <th>Etapa</th><th>Responsável</th><th class="num">Aberto em</th>
+          <th class="num">Aberto há</th><th class="num">SLA</th><th>Situação</th><th></th>
         </tr>
       </thead>
       <tbody id="tbChamados"></tbody>
@@ -258,6 +259,11 @@
         <div class="bloco">
           <h3>Dados do chamado</h3>
           <dl class="meta-list" id="tkMeta"></dl>
+        </div>
+
+        <div class="bloco" id="cardHistorico" hidden>
+          <h3>Por onde passou</h3>
+          <ul class="hist" id="histLista"></ul>
         </div>
       </div>
     </div>

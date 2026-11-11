@@ -46,6 +46,8 @@ $("fila").addEventListener("click", function(e){
   if(v !== null && v !== undefined){
     var it = fila[parseInt(v,10)];
     $("fSolicitante").value = it.quem || "";
+    /* o que foi anotado na captura já é um nome curto: serve de título */
+    $("fTitulo").value = (it.oque || "").slice(0, 100);
     $("fDetalhes").value = it.oque || "";
     document.querySelector('nav.tabs button[data-tab="abrir"]').click();
     toast("Levado para o formulário. Complete os obrigatórios.");
@@ -110,16 +112,18 @@ $("fPrioridade").addEventListener("change", function(){
   $("slaHint").textContent = s ? s.t : "Escolha a prioridade para ver o prazo.";
 });
 $("btnLimpar").addEventListener("click", function(){
-  ["fEmpresa","fCanal","fCategoria","fSubcategoria","fPrioridade","fDetalhes",
+  ["fTitulo","fEmpresa","fCanal","fCategoria","fSubcategoria","fPrioridade","fDetalhes",
    "fSolicitante","fEquipamento","fResponsavel","fTipo"]
     .forEach(function(id){ if($(id)) $(id).value = ""; });
   $("slaHint").textContent = "Escolha a prioridade para ver o prazo.";
   $("abrirAviso").textContent = "";
 });
 
-/* o Bitrix exige estes cinco para salvar; a prioridade entra na conta porque
-   sem ela o chamado nasce fora do controle de SLA */
-var OBRIGATORIOS = [["fCategoria","Categoria"], ["fSubcategoria","Subcategoria"],
+/* o Bitrix exige categoria, subcategoria, canal e detalhes. O nome e a
+   prioridade a página exige por conta: sem nome o chamado não se identifica na
+   lista, e sem prioridade ele nasce fora do controle de SLA */
+var OBRIGATORIOS = [["fTitulo","Nome do chamado"],
+                    ["fCategoria","Categoria"], ["fSubcategoria","Subcategoria"],
                     ["fCanal","Canal de abertura"], ["fDetalhes","Detalhes"],
                     ["fPrioridade","Prioridade"]];
 function faltandoNoFormulario(){
@@ -128,7 +132,7 @@ function faltandoNoFormulario(){
 }
 function camposDoNovoChamado(){
   var c = B.campo, f = {};
-  f.title = $("fDetalhes").value.trim().slice(0,60);
+  f.title = $("fTitulo").value.trim();   /* é o nome que aparece na lista */
   f.opened = true;                       /* "Disponível para todos", obrigatório */
   f.categoryId = 27;                     /* funil dos chamados técnicos */
   f[c.categoria]    = $("fCategoria").value;
@@ -144,7 +148,7 @@ function camposDoNovoChamado(){
 function salvarLocalmente(aviso){
   var c = {
     id: "local-" + Date.now(),
-    titulo: $("fDetalhes").value.trim().slice(0,60),
+    titulo: $("fTitulo").value.trim(),
     empresa: $("fEmpresa").value,
     canal: labelEnum(B.campo.canal, $("fCanal").value),
     categoria: labelCategoria($("fCategoria").value),
@@ -184,7 +188,8 @@ $("btnSalvarChamado").addEventListener("click", function(){
         '<a href="' + B.portal + '/page/chamados/chamado_tecnico/type/' + B.tipo +
         '/details/' + esc(novo.id) + '/" target="_blank" rel="noopener">abrir no portal</a>';
       toast("Chamado #" + novo.id + " criado.");
-      $("fDetalhes").value = ""; $("fSolicitante").value = ""; $("fEquipamento").value = "";
+      $("fTitulo").value = ""; $("fDetalhes").value = "";
+      $("fSolicitante").value = ""; $("fEquipamento").value = "";
       carregarChamados();
     })
     .catch(function(e){

@@ -70,6 +70,65 @@ function carregarMotivosPausa(){
     });
   });
 }
+
+/* nomes dos usuários: o Bitrix devolve só o id em quem abriu e no responsável.
+   Vai em lote (batch) para não virar uma chamada por pessoa, e fica guardado. */
+function carregarUsuarios(ids){
+  var faltam = [];
+  (ids || []).forEach(function(id){
+    if(id === null || id === undefined || id === "" || String(id) === "0") return;
+    if(usuarios[id] === undefined && faltam.indexOf(String(id)) === -1) faltam.push(String(id));
+  });
+  if(!faltam.length) return Promise.resolve();
+  var lotes = [];
+  for(var i=0; i<faltam.length; i+=50) lotes.push(faltam.slice(i, i+50));
+  return lotes.reduce(function(p, lote){
+    return p.then(function(){
+      var cmd = {};
+      lote.forEach(function(id){ cmd["u" + id] = "user.get?ID=" + encodeURIComponent(id); });
+      return bitrixCall("batch", {halt: 0, cmd: cmd}).then(function(j){
+        var res = (j.result && j.result.result) ? j.result.result : {};
+        lote.forEach(function(id){
+          var r = res["u" + id];
+          var u = (r && r.length) ? r[0] : null;
+          var nome = u ? [u.NAME, u.LAST_NAME].filter(Boolean).join(" ").trim() : "";
+          /* mesmo sem achar, marca como visto para não pedir de novo a cada carga */
+          usuarios[id] = nome || (u && u.EMAIL) || ("usuário " + id);
+        });
+      });
+    });
+  }, Promise.resolve())
+   .then(function(){ save(K.usuarios, usuarios); })
+   .catch(function(){ /* sem nomes, a tela mostra "usuário <id>" */ });
+}
+
+/* por onde o chamado passou. Este método existe para processos inteligentes. */
+function historicoEtapas(id){
+  return bitrixCall("crm.stagehistory.list", {
+    entityTypeId: B.tipo,
+    filter: {OWNER_ID: id},
+    order: {ID: "ASC"},
+    select: ["ID","OWNER_ID","CREATED_TIME","STAGE_ID","STAGE_SEMANTIC_ID"]
+  }).then(function(j){
+    var itens = (j.result && j.result.items) ? j.result.items : (j.result || []);
+    return (itens || []).map(function(h){
+      var et = etapasBitrix[h.STAGE_ID] || {};
+      return {quando: h.CREATED_TIME, etapa: et.nome || h.STAGE_ID, semantica: h.STAGE_SEMANTIC_ID};
+    });
+  }).catch(function(e){ return {erro: e.message}; });
+}
+
+/* troca de responsável: não há método REST documentado para processos
+   inteligentes. Tentamos uma vez; se o portal não expuser, a seção some. */
+function historicoResponsaveis(id){
+  return bitrixCall("crm.item.history.list", {entityTypeId: B.tipo, filter: {ownerId: id}})
+    .then(function(j){
+      var itens = (j.result && j.result.items) ? j.result.items : [];
+      return itens.filter(function(h){ return /assigned/i.test(h.fieldName || h.FIELD || ""); });
+    })
+    .catch(function(e){ return {erro: e.message}; });
+}
+
 function carregarChamados(){
   var st = $("statusCarga");
   if(!load(K.wh, "")){ st.textContent = "Sem webhook. Conecte na aba Bitrix."; return; }
@@ -80,7 +139,8 @@ function carregarChamados(){
       entityTypeId: B.tipo,
       order: {id: "DESC"},
       start: start,
-      select: ["id","title","stageId","createdTime","assignedById",
+      select: ["id","title","stageId","createdTime","createdBy","updatedTime",
+               "updatedBy","movedTime","movedBy","assignedById",
                campos.categoria, campos.prioridade, campos.detalhes]
     }).then(function(j){
       var itens = (j.result && j.result.items) ? j.result.items : [];
@@ -103,6 +163,12 @@ function carregarChamados(){
           etapa: et.nome || it.stageId,
           semantica: et.semantica,
           aberto: it.createdTime,
+          criadoPor: it.createdBy,
+          responsavelId: it.assignedById,
+          atualizado: it.updatedTime,
+          atualizadoPor: it.updatedBy,
+          movido: it.movedTime,
+          movidoPor: it.movedBy,
           origem: "bitrix"
         };
       });
@@ -112,6 +178,10 @@ function carregarChamados(){
       st.textContent = deBitrix.length + " chamados lidos do Bitrix em " +
         new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}) + ".";
       renderPainel(); renderSelectChamados();
+      /* os nomes chegam depois; quando chegarem, o painel se redesenha */
+      var ids = [];
+      deBitrix.forEach(function(c){ ids.push(c.criadoPor, c.responsavelId); });
+      return carregarUsuarios(ids).then(function(){ renderPainel(); });
     })
     .catch(function(e){
       st.textContent = "Falhou: " + e.message + " — confira o webhook na aba Bitrix.";

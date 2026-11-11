@@ -103,10 +103,16 @@
 <!-- ============ ABRIR ============ -->
 <section id="tab-abrir" hidden>
   <h2>Abrir chamado</h2>
-  <p class="lead">Os cinco campos que o Bitrix exige para salvar ficam aqui em cima. O resto está recolhido — abra só o que o chamado precisar.</p>
+  <p class="lead">Os campos obrigatórios ficam aqui em cima. O resto está recolhido — abra só o que o chamado precisar.</p>
 
   <div class="card">
     <h3>Obrigatório</h3>
+    <div class="field" style="margin-bottom:13px">
+      <label for="fTitulo">Nome do chamado <span class="req">*</span></label>
+      <input type="text" id="fTitulo" maxlength="100" autocomplete="off"
+             placeholder="Em poucas palavras — ex.: Wi-Fi caindo na bancada">
+      <div class="hint">É por este nome que você reconhece o chamado na lista do painel. Seja específico: &ldquo;Notebook do Max não liga&rdquo; vale mais que &ldquo;problema no notebook&rdquo;.</div>
+    </div>
     <div class="grid g2">
       <div class="field">
         <label for="fEmpresa">Empresa</label>

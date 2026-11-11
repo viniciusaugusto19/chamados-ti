@@ -73,6 +73,17 @@ function carregarMotivosPausa(){
 
 /* nomes dos usuários: o Bitrix devolve só o id em quem abriu e no responsável.
    Vai em lote (batch) para não virar uma chamada por pessoa, e fica guardado. */
+var motivoSemNomes = "";
+function avisarSemNomes(){
+  var alvo = $("avisoNomes");
+  if(!alvo) return;
+  if(!motivoSemNomes){ alvo.hidden = true; return; }
+  alvo.hidden = false;
+  alvo.innerHTML = "Os nomes das pessoas estão aparecendo como <b>usuário &lt;número&gt;</b> " +
+    "porque o Bitrix recusou a leitura de usuários: <code>" + esc(motivoSemNomes) + "</code>. " +
+    "No portal, edite o webhook de entrada e marque também o escopo <b>Usuários (user)</b> — " +
+    "só o de CRM não basta para traduzir id em nome.";
+}
 function carregarUsuarios(ids){
   var faltam = [];
   (ids || []).forEach(function(id){
@@ -87,19 +98,24 @@ function carregarUsuarios(ids){
       var cmd = {};
       lote.forEach(function(id){ cmd["u" + id] = "user.get?ID=" + encodeURIComponent(id); });
       return bitrixCall("batch", {halt: 0, cmd: cmd}).then(function(j){
-        var res = (j.result && j.result.result) ? j.result.result : {};
+        var res  = (j.result && j.result.result) ? j.result.result : {};
+        var errs = (j.result && j.result.result_error) ? j.result.result_error : {};
         lote.forEach(function(id){
           var r = res["u" + id];
           var u = (r && r.length) ? r[0] : null;
           var nome = u ? [u.NAME, u.LAST_NAME].filter(Boolean).join(" ").trim() : "";
-          /* mesmo sem achar, marca como visto para não pedir de novo a cada carga */
-          usuarios[id] = nome || (u && u.EMAIL) || ("usuário " + id);
+          if(nome || (u && u.EMAIL)){ usuarios[id] = nome || u.EMAIL; return; }
+          /* sem nome: guardar o motivo vale mais do que exibir "usuário 429" e
+             calar. O caso comum é o webhook sem o escopo "user" marcado. */
+          var e = errs["u" + id];
+          if(e) motivoSemNomes = e.error_description || e.error || String(e);
+          usuarios[id] = "usuário " + id;
         });
       });
     });
   }, Promise.resolve())
-   .then(function(){ save(K.usuarios, usuarios); })
-   .catch(function(){ /* sem nomes, a tela mostra "usuário <id>" */ });
+   .then(function(){ save(K.usuarios, usuarios); avisarSemNomes(); })
+   .catch(function(e){ motivoSemNomes = e.message; avisarSemNomes(); });
 }
 
 /* por onde o chamado passou. Este método existe para processos inteligentes. */

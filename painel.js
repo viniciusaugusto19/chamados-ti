@@ -57,6 +57,8 @@ function renderPainel(){
       "<td>" + esc(c.categoria || "—") + "</td>" +
       "<td>" + esc(rotuloCurto(c.prioridade)) + "</td>" +
       "<td>" + esc(c.etapa || "—") + "</td>" +
+      "<td>" + esc(labelUsuario(c.responsavelId) || "—") + "</td>" +
+      '<td class="num" title="' + esc(dataHora(c.aberto)) + '">' + esc(dataCurta(c.aberto)) + "</td>" +
       '<td class="num">' + s.gasto.toFixed(1) + " h</td>" +
       '<td class="num">' + (s.limite ? s.limite + " h" : "—") + "</td>" +
       '<td><span class="tag ' + s.cls + '">' + s.txt + "</span></td>" +

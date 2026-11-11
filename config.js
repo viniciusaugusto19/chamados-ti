@@ -60,6 +60,28 @@ function labelCategoria(v){ return labelEnum(B.campo.categoria, v); }
 /* campos de lista que a tela monta sozinha a partir do crm.item.fields */
 var CAMPOS_LISTA = ["categoria","subcategoria","prioridade","canal","empresa"];
 
+/* id do usuário -> nome. Hidratado do cache em util.js. */
+var usuarios = {};
+function labelUsuario(id){
+  if(id === null || id === undefined || id === "" || String(id) === "0") return "";
+  return usuarios[id] || ("usuário " + id);
+}
+/* data e hora como as pessoas leem, a partir do ISO que o Bitrix devolve */
+function dataHora(iso){
+  if(!iso) return "";
+  var d = new Date(iso);
+  if(isNaN(d.getTime())) return String(iso);
+  return d.toLocaleString("pt-BR", {day:"2-digit", month:"2-digit", year:"numeric",
+                                    hour:"2-digit", minute:"2-digit"});
+}
+function dataCurta(iso){
+  if(!iso) return "—";
+  var d = new Date(iso);
+  if(isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("pt-BR", {day:"2-digit", month:"2-digit"}) + " " +
+         d.toLocaleTimeString("pt-BR", {hour:"2-digit", minute:"2-digit"});
+}
+
 /* a prioridade no Bitrix vem com o SLA escrito junto; casamos pelo começo do rótulo */
 function slaDeLabel(label){
   label = labelPrioridade(label);

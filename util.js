@@ -1,7 +1,7 @@
 "use strict";
 /* ---------------- storage ---------------- */
 var K = {fila:"ctip.fila", chamados:"ctip.chamados", wh:"ctip.wh", tema:"ctip.tema",
-         jornada:"ctip.jornada", enums:"ctip.enums"};
+         jornada:"ctip.jornada", enums:"ctip.enums", usuarios:"ctip.usuarios"};
 function load(k, fb){ try{ var v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; }catch(e){ return fb; } }
 function save(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){ toast("Não consegui salvar neste navegador."); } }
 
@@ -14,6 +14,10 @@ var chamados = load(K.chamados, []);
   var cache = load(K.enums, null);
   if(cache && typeof cache === "object"){
     for(var k in cache) enumRotulos[k] = cache[k];
+  }
+  var us = load(K.usuarios, null);
+  if(us && typeof us === "object"){
+    for(var u in us) usuarios[u] = us[u];
   }
 })();
 

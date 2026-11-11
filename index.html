@@ -68,7 +68,7 @@
         </select>
       </div>
     </div>
-    <div class="hint">O SLA é contado em horas úteis, como na tabela do Bitrix — não em dias. Padrão 08:00&ndash;17:00, sem intervalo e sem feriados. Ajuste se a jornada de vocês for outra — o painel recalcula.</div>
+    <div class="hint">O SLA é contado em horas úteis, como na tabela do Bitrix — não em dias. Padrão 08:00&ndash;17:00 com 1h de intervalo (12:00&ndash;13:00), o que dá 8h líquidas por dia útil, igual à conta de &ldquo;1 dia útil&rdquo; da tabela. Feriados não são descontados. Ajuste se a jornada de vocês for outra — o painel recalcula.</div>
   </div>
 
   <div class="card">
@@ -108,31 +108,20 @@
     <h3>Obrigatório</h3>
     <div class="grid g2">
       <div class="field">
-        <label for="fEmpresa">Empresa <span class="req">*</span></label>
-        <select id="fEmpresa">
-          <option value="">—</option>
-          <option>Astro 34</option><option>Spectral Solutions</option>
-          <option>FAST.CO</option><option>Futurex</option><option>Outra</option>
-        </select>
-        <div class="hint">Lista provisória — me diga as empresas certas do seletor do Bitrix.</div>
+        <label for="fEmpresa">Empresa</label>
+        <select id="fEmpresa"></select>
       </div>
       <div class="field">
         <label for="fCanal">Canal de abertura <span class="req">*</span></label>
-        <select id="fCanal">
-          <option value="">—</option>
-          <option>Telefone</option><option>E-mail</option><option>Whatsapp</option>
-          <option>Site</option><option>Pessoalmente</option><option>Teams</option>
-        </select>
+        <select id="fCanal"></select>
       </div>
       <div class="field">
         <label for="fCategoria">Categoria do chamado <span class="req">*</span></label>
-        <select id="fCategoria">
-          <option value="">—</option>
-          <option>Diversos</option><option>Acesso/Suporte Remoto</option><option>Hardware</option>
-          <option>Software</option><option>Redes</option><option>Login de acesso</option>
-          <option>Telefonia</option><option>Movimentação</option><option>Quimiometria</option>
-          <option>Visita técnica</option><option>Instalação</option><option>Dúvidas</option>
-        </select>
+        <select id="fCategoria"></select>
+      </div>
+      <div class="field">
+        <label for="fSubcategoria">Subcategoria do chamado <span class="req">*</span></label>
+        <select id="fSubcategoria"></select>
       </div>
       <div class="field">
         <label for="fPrioridade">Prioridade <span class="req">*</span></label>

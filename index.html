@@ -1,0 +1,833 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chamados TI Prospera</title>
+<style>
+/* Layout: barra de abas fixa no topo + uma coluna de trabalho de 1100px */
+:root{
+  --bg:#f5f6f4; --surface:#fff; --surface-2:#eef0ec; --line:#d9ddd5;
+  --fg:#1c201b; --muted:#666d63; --accent:#2f6f4e; --accent-soft:#e2efe8;
+  --good:#2f7d4f; --warn:#9a6016; --crit:#a33224;
+  --good-bg:#e4f2e7; --warn-bg:#faeedb; --crit-bg:#fae7e4;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#14181a; --surface:#1b2023; --surface-2:#232a2e; --line:#2e3639;
+    --fg:#e3e8e3; --muted:#8c958b; --accent:#6ec294; --accent-soft:#1e2e26;
+    --good:#6ec294; --warn:#d9a259; --crit:#e4756a;
+    --good-bg:#1b2d22; --warn-bg:#2e2619; --crit-bg:#2e1e1c;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#14181a; --surface:#1b2023; --surface-2:#232a2e; --line:#2e3639;
+  --fg:#e3e8e3; --muted:#8c958b; --accent:#6ec294; --accent-soft:#1e2e26;
+  --good:#6ec294; --warn:#d9a259; --crit:#e4756a;
+  --good-bg:#1b2d22; --warn-bg:#2e2619; --crit-bg:#2e1e1c;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.5}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+
+/* ---------- topo ---------- */
+header.bar{
+  position:sticky;top:0;z-index:20;background:var(--surface);
+  border-bottom:1px solid var(--line);
+}
+.bar-in{
+  max-width:1100px;margin:0 auto;padding:10px 16px;
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+}
+.brand{font-weight:700;letter-spacing:-.01em;white-space:nowrap}
+.brand small{display:block;font-weight:400;font-size:.7rem;color:var(--muted);letter-spacing:.02em}
+nav.tabs{display:flex;gap:4px;flex:1;flex-wrap:wrap}
+nav.tabs button{
+  background:none;border:1px solid transparent;border-radius:8px;
+  padding:7px 13px;cursor:pointer;font-weight:500;color:var(--muted);
+}
+nav.tabs button:hover{background:var(--surface-2);color:var(--fg)}
+nav.tabs button[aria-selected="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+.pill{
+  display:inline-block;min-width:19px;padding:0 5px;margin-left:6px;
+  background:var(--accent);color:var(--surface);border-radius:9px;
+  font-size:.68rem;font-weight:700;text-align:center;line-height:17px;vertical-align:1px;
+}
+.ghost{
+  background:var(--bg);border:1px solid var(--line);border-radius:8px;
+  padding:7px 11px;cursor:pointer;font-size:.82rem;white-space:nowrap;
+}
+.ghost:hover{border-color:var(--accent);color:var(--accent)}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px;background:var(--muted)}
+.dot.on{background:var(--good)}
+.dot.off{background:var(--crit)}
+
+main{max-width:1100px;margin:0 auto;padding:22px 16px 64px}
+section[hidden]{display:none!important}
+h2{font-size:1.15rem;margin:0 0 4px;letter-spacing:-.01em}
+.lead{color:var(--muted);font-size:.88rem;margin:0 0 18px;max-width:70ch}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:16px}
+.card h3{margin:0 0 12px;font-size:.78rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700}
+
+label{display:block;font-size:.8rem;font-weight:600;margin-bottom:5px}
+label .req{color:var(--crit);font-weight:700}
+input[type=text],input[type=datetime-local],input[type=password],select,textarea{
+  width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;
+  background:var(--bg);
+}
+textarea{resize:vertical;min-height:84px}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{
+  outline:2px solid var(--accent);outline-offset:1px
+}
+.grid{display:grid;gap:13px}
+.g2{grid-template-columns:1fr 1fr}
+.g3{grid-template-columns:repeat(3,1fr)}
+@media (max-width:720px){.g2,.g3{grid-template-columns:1fr}}
+.field{min-width:0}
+.hint{font-size:.74rem;color:var(--muted);margin-top:4px}
+
+.primary{
+  background:var(--accent);color:#fff;border:none;border-radius:9px;
+  padding:11px 20px;font-weight:600;cursor:pointer;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .primary{color:#10211a}}
+:root[data-theme="dark"] .primary{color:#10211a}
+.primary:hover{filter:brightness(1.08)}
+.row-end{display:flex;gap:9px;justify-content:flex-end;align-items:center;flex-wrap:wrap;margin-top:16px}
+
+details.fold{border:1px solid var(--line);border-radius:10px;margin-bottom:11px;background:var(--surface)}
+details.fold>summary{
+  padding:11px 14px;cursor:pointer;font-weight:600;font-size:.85rem;
+  list-style:none;display:flex;align-items:center;gap:8px;
+}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary::before{content:"\25B8";color:var(--muted);font-size:.8rem}
+details.fold[open]>summary::before{content:"\25BE"}
+details.fold>.fold-body{padding:0 14px 14px}
+
+/* ---------- captura ---------- */
+.capture-box{display:flex;gap:9px;flex-wrap:wrap}
+.capture-box input[type=text]{flex:1 1 260px}
+.queue{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.queue li{
+  display:flex;gap:11px;align-items:flex-start;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:10px 12px;
+}
+.queue .txt{flex:1;min-width:0}
+.queue .when{font-family:var(--mono);font-size:.72rem;color:var(--muted);white-space:nowrap}
+.queue .acts{display:flex;gap:6px;flex:none}
+.mini{background:none;border:1px solid var(--line);border-radius:7px;padding:4px 9px;font-size:.74rem;cursor:pointer}
+.mini:hover{border-color:var(--accent);color:var(--accent)}
+.mini.danger:hover{border-color:var(--crit);color:var(--crit)}
+
+/* ---------- painel ---------- */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:13px 15px}
+.kpi b{display:block;font-size:1.65rem;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.kpi span{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.kpi.crit b{color:var(--crit)} .kpi.warn b{color:var(--warn)} .kpi.good b{color:var(--good)}
+
+table{width:100%;border-collapse:collapse;font-size:.86rem}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:11px;background:var(--surface)}
+th,td{text-align:left;padding:10px 13px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:var(--surface-2)}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.72rem;font-weight:600;white-space:nowrap}
+.tag.ok{background:var(--good-bg);color:var(--good)}
+.tag.warn{background:var(--warn-bg);color:var(--warn)}
+.tag.crit{background:var(--crit-bg);color:var(--crit)}
+.tag.neutral{background:var(--surface-2);color:var(--muted)}
+.empty{padding:34px 18px;text-align:center;color:var(--muted);font-size:.88rem}
+
+/* ---------- conexão ---------- */
+.diag{
+  font-family:var(--mono);font-size:.78rem;white-space:pre-wrap;word-break:break-word;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:9px;
+  padding:12px 14px;margin-top:13px;
+}
+.note{
+  border-left:3px solid var(--accent);background:var(--accent-soft);
+  padding:11px 14px;border-radius:0 9px 9px 0;font-size:.84rem;margin:14px 0;
+}
+.toast{
+  position:fixed;left:50%;bottom:22px;transform:translateX(-50%);
+  background:var(--fg);color:var(--bg);padding:11px 20px;border-radius:9px;
+  font-size:.86rem;font-weight:500;z-index:60;box-shadow:0 6px 22px rgba(0,0,0,.26);
+}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="bar-in">
+    <div class="brand">Chamados TI<small>GRUPO PROSPERA</small></div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="captura">Captura rápida<span class="pill" id="pillFila">0</span></button>
+      <button role="tab" aria-selected="false" data-tab="painel">Painel</button>
+      <button role="tab" aria-selected="false" data-tab="abrir">Abrir chamado</button>
+      <button role="tab" aria-selected="false" data-tab="documentar">Documentar</button>
+      <button role="tab" aria-selected="false" data-tab="conexao"><span class="dot off" id="connDot"></span>Bitrix</button>
+    </nav>
+    <button class="ghost" id="btnTema" type="button">Tema</button>
+  </div>
+</header>
+
+<main>
+
+<!-- ============ CAPTURA ============ -->
+<section id="tab-captura">
+  <h2>Captura rápida</h2>
+  <p class="lead">Dez segundos no fim de cada atendimento: quem pediu e o que foi feito. Depois você transforma em chamado completo em lote, nas duas janelas da agenda. Fica salvo neste navegador, mesmo sem Bitrix conectado.</p>
+
+  <div class="card">
+    <h3>Anotar agora</h3>
+    <div class="capture-box">
+      <input type="text" id="capQuem" placeholder="Quem pediu — nome ou setor" autocomplete="off">
+      <input type="text" id="capOque" placeholder="O que foi feito — 3 ou 4 palavras" autocomplete="off">
+      <button class="primary" id="capAdd" type="button">Anotar</button>
+    </div>
+    <div class="hint">Enter em qualquer um dos campos também salva.</div>
+    <ul class="queue" id="fila"></ul>
+    <div class="empty" id="filaVazia">Nada na fila. O que você anotar aqui aparece nesta lista.</div>
+  </div>
+</section>
+
+<!-- ============ PAINEL ============ -->
+<section id="tab-painel" hidden>
+  <h2>Painel de acompanhamento</h2>
+  <p class="lead">Os chamados abertos por etapa, com o prazo de SLA contado em horas úteis a partir da abertura. Vermelho é prazo estourado.</p>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="card">
+    <h3>Jornada usada no cálculo</h3>
+    <div class="grid g3">
+      <div class="field">
+        <label for="jorIni">Início</label>
+        <input type="text" id="jorIni" value="08:00" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label for="jorFim">Fim</label>
+        <input type="text" id="jorFim" value="17:00">
+      </div>
+      <div class="field">
+        <label for="jorDias">Dias úteis</label>
+        <select id="jorDias">
+          <option value="12345" selected>Segunda a sexta</option>
+          <option value="123456">Segunda a sábado</option>
+        </select>
+      </div>
+    </div>
+    <div class="hint">O SLA é contado em horas úteis, como na tabela do Bitrix — não em dias. Padrão 08:00&ndash;17:00, sem intervalo e sem feriados. Ajuste se a jornada de vocês for outra — o painel recalcula.</div>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Chamado</th><th>Empresa</th><th>Categoria</th><th>Prioridade</th>
+          <th>Etapa</th><th class="num">Aberto há</th><th class="num">SLA</th><th>Situação</th>
+        </tr>
+      </thead>
+      <tbody id="tbChamados"></tbody>
+    </table>
+    <div class="empty" id="painelVazio">
+      Sem chamados carregados. Conecte o Bitrix na aba <b>Bitrix</b> para puxar os abertos,
+      ou abra um chamado pela aba <b>Abrir chamado</b> para ver como o painel se comporta.
+    </div>
+  </div>
+</section>
+
+<!-- ============ ABRIR ============ -->
+<section id="tab-abrir" hidden>
+  <h2>Abrir chamado</h2>
+  <p class="lead">Os cinco campos que o Bitrix exige para salvar ficam aqui em cima. O resto está recolhido — abra só o que o chamado precisar.</p>
+
+  <div class="card">
+    <h3>Obrigatório</h3>
+    <div class="grid g2">
+      <div class="field">
+        <label for="fEmpresa">Empresa <span class="req">*</span></label>
+        <select id="fEmpresa">
+          <option value="">—</option>
+          <option>Astro 34</option><option>Spectral Solutions</option>
+          <option>FAST.CO</option><option>Futurex</option><option>Outra</option>
+        </select>
+        <div class="hint">Lista provisória — me diga as empresas certas do seletor do Bitrix.</div>
+      </div>
+      <div class="field">
+        <label for="fCanal">Canal de abertura <span class="req">*</span></label>
+        <select id="fCanal">
+          <option value="">—</option>
+          <option>Telefone</option><option>E-mail</option><option>Whatsapp</option>
+          <option>Site</option><option>Pessoalmente</option><option>Teams</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="fCategoria">Categoria do chamado <span class="req">*</span></label>
+        <select id="fCategoria">
+          <option value="">—</option>
+          <option>Diversos</option><option>Acesso/Suporte Remoto</option><option>Hardware</option>
+          <option>Software</option><option>Redes</option><option>Login de acesso</option>
+          <option>Telefonia</option><option>Movimentação</option><option>Quimiometria</option>
+          <option>Visita técnica</option><option>Instalação</option><option>Dúvidas</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="fPrioridade">Prioridade <span class="req">*</span></label>
+        <select id="fPrioridade"></select>
+        <div class="hint" id="slaHint">Escolha a prioridade para ver o prazo.</div>
+      </div>
+    </div>
+    <div class="field" style="margin-top:13px">
+      <label for="fDetalhes">Detalhes do chamado <span class="req">*</span></label>
+      <textarea id="fDetalhes" placeholder="O que o solicitante relatou, com as palavras dele."></textarea>
+    </div>
+  </div>
+
+  <details class="fold">
+    <summary>Quem pediu</summary>
+    <div class="fold-body grid g2">
+      <div class="field">
+        <label for="fTipo">Tipo de ticket</label>
+        <select id="fTipo">
+          <option>Interno</option><option>Externo</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="fSolicitante">Solicitante</label>
+        <input type="text" id="fSolicitante" placeholder="Colaborador astro/fastco/spectro, ou usuário externo">
+      </div>
+      <div class="field">
+        <label for="fEquipamento">Equipamento</label>
+        <input type="text" id="fEquipamento" placeholder="Celular, notebook, ou equipamento do cliente">
+      </div>
+      <div class="field">
+        <label for="fResponsavel">Responsável pelo atendimento</label>
+        <input type="text" id="fResponsavel" placeholder="Padrão: quem está logado no Bitrix">
+      </div>
+    </div>
+  </details>
+
+  <details class="fold">
+    <summary>Etapa do funil</summary>
+    <div class="fold-body">
+      <div class="field">
+        <label for="fEtapa">Etapa</label>
+        <select id="fEtapa"></select>
+      </div>
+    </div>
+  </details>
+
+  <div class="row-end">
+    <span class="hint" id="abrirAviso"></span>
+    <button class="ghost" id="btnLimpar" type="button">Limpar</button>
+    <button class="primary" id="btnSalvarChamado" type="button">Salvar chamado</button>
+  </div>
+</section>
+
+<!-- ============ DOCUMENTAR ============ -->
+<section id="tab-documentar" hidden>
+  <h2>Documentar e resolver</h2>
+  <p class="lead">A seção RESOLUÇÃO do formulário do Bitrix, sozinha numa tela. Testes e próximos passos são listas: escreva e aperte Enter.</p>
+
+  <div class="card">
+    <h3>Chamado</h3>
+    <div class="field">
+      <label for="dChamado">Qual chamado</label>
+      <select id="dChamado"><option value="">—</option></select>
+      <div class="hint">A lista vem dos chamados do painel.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Testes realizados</h3>
+    <div class="capture-box">
+      <input type="text" id="dTesteIn" placeholder="Um teste por linha — ex.: trocado cabo de rede, mesmo erro" autocomplete="off">
+      <button class="ghost" id="dTesteAdd" type="button">Adicionar</button>
+    </div>
+    <ul class="queue" id="listaTestes"></ul>
+  </div>
+
+  <div class="card">
+    <h3>Próximos passos</h3>
+    <div class="capture-box">
+      <input type="text" id="dPassoIn" placeholder="Ex.: abrir chamado na operadora, protocolo 1234" autocomplete="off">
+      <button class="ghost" id="dPassoAdd" type="button">Adicionar</button>
+    </div>
+    <ul class="queue" id="listaPassos"></ul>
+  </div>
+
+  <div class="card">
+    <h3>Resolução</h3>
+    <div class="field">
+      <label for="dResolucao">Resolução ou observação</label>
+      <textarea id="dResolucao" placeholder="O que resolveu o problema, para servir de referência no próximo chamado igual."></textarea>
+    </div>
+  </div>
+
+  <details class="fold">
+    <summary>Pausa (aguardando terceiros)</summary>
+    <div class="fold-body grid g3">
+      <div class="field">
+        <label for="dPausaMotivo">Motivo</label>
+        <input type="text" id="dPausaMotivo" placeholder="Ex.: aguardando peça">
+      </div>
+      <div class="field">
+        <label for="dPausaIni">Data da pausa</label>
+        <input type="datetime-local" id="dPausaIni">
+      </div>
+      <div class="field">
+        <label for="dPausaFim">Data de retomada</label>
+        <input type="datetime-local" id="dPausaFim">
+      </div>
+    </div>
+  </details>
+
+  <div class="row-end">
+    <button class="ghost" id="btnCopiarDoc" type="button">Copiar como texto</button>
+    <button class="primary" id="btnSalvarDoc" type="button">Salvar documentação</button>
+  </div>
+</section>
+
+<!-- ============ CONEXÃO ============ -->
+<section id="tab-conexao" hidden>
+  <h2>Conexão com o Bitrix</h2>
+  <p class="lead">Sem isso a página funciona sozinha, guardando tudo neste navegador. Com isso ela lê e grava os chamados de verdade no portal.</p>
+
+  <div class="note">
+    <b>Não consegui testar essa conexão do meu lado</b> — o ambiente onde eu rodo não alcança o
+    <code>straylight.bitrix24.com.br</code>. Por isso o teste está aqui dentro: rode na sua máquina e
+    o diagnóstico abaixo diz exatamente o que aconteceu.
+  </div>
+
+  <div class="card">
+    <h3>Webhook de entrada</h3>
+    <div class="field">
+      <label for="wh">URL do webhook</label>
+      <input type="password" id="wh" placeholder="https://straylight.bitrix24.com.br/rest/1/xxxxxxxxxxxx/" autocomplete="off">
+      <div class="hint">
+        No Bitrix: <b>Aplicativos → Webhooks → Webhook de entrada</b>, com permissão de CRM.
+        A URL fica guardada só neste navegador, na sua máquina — não vai para lugar nenhum e não está dentro deste arquivo.
+      </div>
+    </div>
+    <div class="row-end">
+      <button class="ghost" id="btnMostrar" type="button">Mostrar</button>
+      <button class="ghost" id="btnEsquecer" type="button">Esquecer</button>
+      <button class="primary" id="btnTestar" type="button">Testar conexão</button>
+    </div>
+    <div class="diag" id="diag">Aguardando teste.</div>
+  </div>
+
+  <div class="card">
+    <h3>O que o teste verifica</h3>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Checagem</th><th>Se falhar</th></tr></thead>
+        <tbody>
+          <tr><td>O navegador consegue chamar o Bitrix de um arquivo local (CORS)</td>
+              <td>Precisa servir a página por <code>http://localhost</code> em vez de abrir o arquivo direto — eu te passo o comando.</td></tr>
+          <tr><td>O webhook existe e o token é válido</td>
+              <td>Gere outro webhook de entrada e cole aqui.</td></tr>
+          <tr><td>O webhook tem permissão de CRM</td>
+              <td>Edite o webhook no Bitrix e marque o escopo CRM.</td></tr>
+          <tr><td>O processo 1032 (Chamados) responde</td>
+              <td>Confirmo o <code>entityTypeId</code> com você e ajusto.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------------- SLA ---------------- */
+var SLA = [
+  {n:"Alta",                h:4,   t:"Até 4 horas úteis — operação parada ou risco de perda de dados"},
+  {n:"Média",               h:8,   t:"Até 1 dia útil (8h) — falha parcial com alternativa temporária"},
+  {n:"Baixa",               h:24,  t:"Até 3 dias úteis (24h) — dúvidas, melhorias, sem impacto direto"},
+  {n:"N2 Presencial",       h:72,  t:"Agendamento em 72h úteis"},
+  {n:"N2 P&D",              h:8,   t:"8h úteis"},
+  {n:"ICL Hardware",        h:16,  t:"2 dias úteis"},
+  {n:"ICL Software",        h:24,  t:"3 dias úteis"},
+  {n:"ICL Calibração",      h:120, t:"15 dias úteis"},
+  {n:"ICL API",             h:24,  t:"3 dias úteis"},
+  {n:"ICL Dashboard",       h:24,  t:"3 dias úteis"}
+];
+var ETAPAS = ["Registro de Chamado","Disparo de alertas","Análise do chamado",
+              "Em atendimento","Aguardando terceiros (Pausa)","Automação de Conclusão","Concluir"];
+
+/* ---------------- storage ---------------- */
+var K = {fila:"ctip.fila", chamados:"ctip.chamados", wh:"ctip.wh", tema:"ctip.tema", jornada:"ctip.jornada"};
+function load(k, fb){ try{ var v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; }catch(e){ return fb; } }
+function save(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){ toast("Não consegui salvar neste navegador."); } }
+
+var fila     = load(K.fila, []);
+var chamados = load(K.chamados, []);
+
+/* ---------------- util ---------------- */
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g, function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+function toast(msg){
+  var t = document.createElement("div"); t.className="toast"; t.textContent=msg;
+  document.body.appendChild(t); setTimeout(function(){ t.remove(); }, 2600);
+}
+function hhmm(s){ var p=String(s||"").split(":"); var h=parseInt(p[0],10), m=parseInt(p[1],10);
+  return {h:isNaN(h)?8:h, m:isNaN(m)?0:m}; }
+
+/* horas úteis entre duas datas, respeitando jornada e dias úteis */
+function horasUteis(ini, fim){
+  var j = jornada();
+  if(fim <= ini) return 0;
+  var total = 0;
+  var cur = new Date(ini.getTime());
+  var guard = 0;
+  while(cur < fim && guard++ < 20000){
+    var dow = cur.getDay();
+    if(j.dias.indexOf(String(dow)) === -1){
+      cur.setDate(cur.getDate()+1); cur.setHours(0,0,0,0); continue;
+    }
+    var ab = new Date(cur); ab.setHours(j.ini.h, j.ini.m, 0, 0);
+    var fe = new Date(cur); fe.setHours(j.fim.h, j.fim.m, 0, 0);
+    var a = cur > ab ? cur : ab;
+    var b = fim < fe ? fim : fe;
+    if(b > a) total += (b - a) / 3600000;
+    cur.setDate(cur.getDate()+1); cur.setHours(0,0,0,0);
+  }
+  return total;
+}
+function jornada(){
+  var saved = load(K.jornada, null);
+  var ini = hhmm(saved ? saved.ini : $("jorIni").value);
+  var fim = hhmm(saved ? saved.fim : $("jorFim").value);
+  var dias = (saved ? saved.dias : $("jorDias").value) || "12345";
+  return {ini:ini, fim:fim, dias:String(dias)};
+}
+function slaDe(nome){ for(var i=0;i<SLA.length;i++){ if(SLA[i].n===nome) return SLA[i]; } return null; }
+
+/* ---------------- abas ---------------- */
+var tabs = document.querySelectorAll("nav.tabs button");
+Array.prototype.forEach.call(tabs, function(b){
+  b.addEventListener("click", function(){
+    Array.prototype.forEach.call(tabs, function(o){
+      o.setAttribute("aria-selected", o===b ? "true" : "false");
+      var s = $("tab-" + o.dataset.tab); if(s) s.hidden = (o!==b);
+    });
+    if(b.dataset.tab === "painel") renderPainel();
+    if(b.dataset.tab === "documentar") renderSelectChamados();
+  });
+});
+
+$("btnTema").addEventListener("click", function(){
+  var r = document.documentElement;
+  var escuro = r.getAttribute("data-theme")==="dark" ||
+    (!r.getAttribute("data-theme") && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  r.setAttribute("data-theme", escuro ? "light" : "dark");
+  save(K.tema, escuro ? "light" : "dark");
+});
+(function(){ var t = load(K.tema, null); if(t) document.documentElement.setAttribute("data-theme", t); })();
+
+/* ---------------- captura ---------------- */
+function renderFila(){
+  var ul = $("fila"); ul.innerHTML = "";
+  $("filaVazia").hidden = fila.length > 0;
+  $("pillFila").textContent = fila.length;
+  fila.forEach(function(item, i){
+    var li = document.createElement("li");
+    li.innerHTML =
+      '<div class="txt"><b>' + esc(item.quem || "sem nome") + '</b> — ' + esc(item.oque) + '</div>' +
+      '<div class="when">' + esc(item.hora) + '</div>' +
+      '<div class="acts">' +
+        '<button class="mini" data-virar="' + i + '">virar chamado</button>' +
+        '<button class="mini danger" data-del="' + i + '">apagar</button>' +
+      '</div>';
+    ul.appendChild(li);
+  });
+}
+$("fila").addEventListener("click", function(e){
+  var v = e.target.getAttribute("data-virar"), d = e.target.getAttribute("data-del");
+  if(d !== null && d !== undefined){
+    fila.splice(parseInt(d,10),1); save(K.fila, fila); renderFila(); return;
+  }
+  if(v !== null && v !== undefined){
+    var it = fila[parseInt(v,10)];
+    $("fSolicitante").value = it.quem || "";
+    $("fDetalhes").value = it.oque || "";
+    document.querySelector('nav.tabs button[data-tab="abrir"]').click();
+    toast("Levado para o formulário. Complete os obrigatórios.");
+  }
+});
+function addCaptura(){
+  var quem = $("capQuem").value.trim(), oque = $("capOque").value.trim();
+  if(!oque){ $("capOque").focus(); return; }
+  var agora = new Date();
+  fila.unshift({ quem:quem, oque:oque,
+    hora: agora.toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}),
+    iso: agora.toISOString() });
+  save(K.fila, fila); $("capQuem").value=""; $("capOque").value=""; $("capQuem").focus(); renderFila();
+}
+$("capAdd").addEventListener("click", addCaptura);
+["capQuem","capOque"].forEach(function(id){
+  $(id).addEventListener("keydown", function(e){ if(e.key==="Enter") addCaptura(); });
+});
+
+/* ---------------- abrir chamado ---------------- */
+(function(){
+  var sel = $("fPrioridade");
+  sel.innerHTML = '<option value="">—</option>';
+  SLA.forEach(function(s){ var o=document.createElement("option"); o.textContent=s.n; sel.appendChild(o); });
+  var se = $("fEtapa");
+  ETAPAS.forEach(function(e){ var o=document.createElement("option"); o.textContent=e; se.appendChild(o); });
+})();
+$("fPrioridade").addEventListener("change", function(){
+  var s = slaDe(this.value);
+  $("slaHint").textContent = s ? s.t : "Escolha a prioridade para ver o prazo.";
+});
+$("btnLimpar").addEventListener("click", function(){
+  ["fEmpresa","fCanal","fCategoria","fPrioridade","fDetalhes","fSolicitante","fEquipamento","fResponsavel","fTipo"]
+    .forEach(function(id){ $(id).value = ""; });
+  $("slaHint").textContent = "Escolha a prioridade para ver o prazo.";
+  $("abrirAviso").textContent = "";
+});
+$("btnSalvarChamado").addEventListener("click", function(){
+  var req = [["fEmpresa","Empresa"],["fCanal","Canal"],["fCategoria","Categoria"],
+             ["fPrioridade","Prioridade"],["fDetalhes","Detalhes"]];
+  var faltam = req.filter(function(r){ return !$(r[0]).value.trim(); }).map(function(r){ return r[1]; });
+  if(faltam.length){
+    $("abrirAviso").textContent = "Faltam: " + faltam.join(", ");
+    $("abrirAviso").style.color = "var(--crit)";
+    return;
+  }
+  var c = {
+    id: "local-" + Date.now(),
+    titulo: $("fDetalhes").value.trim().slice(0,60),
+    empresa: $("fEmpresa").value, canal: $("fCanal").value,
+    categoria: $("fCategoria").value, prioridade: $("fPrioridade").value,
+    etapa: $("fEtapa").value || ETAPAS[0],
+    solicitante: $("fSolicitante").value, equipamento: $("fEquipamento").value,
+    detalhes: $("fDetalhes").value, aberto: new Date().toISOString(),
+    origem: "local", doc: null
+  };
+  chamados.unshift(c); save(K.chamados, chamados);
+  $("abrirAviso").style.color = "var(--good)";
+  $("abrirAviso").textContent = "Salvo nesta página. Para gravar no Bitrix, conecte o webhook.";
+  $("btnLimpar").click();
+  toast("Chamado salvo.");
+});
+
+/* ---------------- painel ---------------- */
+["jorIni","jorFim","jorDias"].forEach(function(id){
+  $(id).addEventListener("change", function(){
+    save(K.jornada, {ini:$("jorIni").value, fim:$("jorFim").value, dias:$("jorDias").value});
+    renderPainel();
+  });
+});
+(function(){ var j = load(K.jornada, null);
+  if(j){ $("jorIni").value=j.ini; $("jorFim").value=j.fim; $("jorDias").value=j.dias; } })();
+
+function situacao(c){
+  var s = slaDe(c.prioridade);
+  if(!s) return {cls:"neutral", txt:"sem SLA", pct:0, gasto:0, limite:0};
+  var gasto = horasUteis(new Date(c.aberto), new Date());
+  var pct = s.h ? gasto / s.h : 0;
+  if(c.etapa === "Concluir") return {cls:"ok", txt:"concluído", pct:pct, gasto:gasto, limite:s.h};
+  if(c.etapa === "Aguardando terceiros (Pausa)") return {cls:"neutral", txt:"pausado", pct:pct, gasto:gasto, limite:s.h};
+  if(pct >= 1) return {cls:"crit", txt:"estourou", pct:pct, gasto:gasto, limite:s.h};
+  if(pct >= 0.75) return {cls:"warn", txt:"perto do prazo", pct:pct, gasto:gasto, limite:s.h};
+  return {cls:"ok", txt:"no prazo", pct:pct, gasto:gasto, limite:s.h};
+}
+function renderPainel(){
+  var tb = $("tbChamados"); tb.innerHTML = "";
+  $("painelVazio").hidden = chamados.length > 0;
+  var n = {crit:0, warn:0, ok:0};
+  chamados.forEach(function(c){
+    var s = situacao(c);
+    if(s.cls==="crit") n.crit++; else if(s.cls==="warn") n.warn++; else if(s.cls==="ok") n.ok++;
+    var tr = document.createElement("tr");
+    tr.innerHTML =
+      "<td>" + esc(c.titulo || c.id) + "</td>" +
+      "<td>" + esc(c.empresa) + "</td>" +
+      "<td>" + esc(c.categoria) + "</td>" +
+      "<td>" + esc(c.prioridade) + "</td>" +
+      "<td>" + esc(c.etapa) + "</td>" +
+      '<td class="num">' + s.gasto.toFixed(1) + " h</td>" +
+      '<td class="num">' + (s.limite ? s.limite + " h" : "—") + "</td>" +
+      '<td><span class="tag ' + s.cls + '">' + s.txt + "</span></td>";
+    tb.appendChild(tr);
+  });
+  $("kpis").innerHTML =
+    '<div class="kpi"><b>' + chamados.length + "</b><span>abertos</span></div>" +
+    '<div class="kpi crit"><b>' + n.crit + "</b><span>estourados</span></div>" +
+    '<div class="kpi warn"><b>' + n.warn + "</b><span>perto do prazo</span></div>" +
+    '<div class="kpi good"><b>' + n.ok + "</b><span>no prazo</span></div>" +
+    '<div class="kpi"><b>' + fila.length + "</b><span>na fila de captura</span></div>";
+}
+
+/* ---------------- documentar ---------------- */
+var testes = [], passos = [];
+function renderLista(ul, arr, tag){
+  ul.innerHTML = "";
+  arr.forEach(function(t, i){
+    var li = document.createElement("li");
+    li.innerHTML = '<div class="txt">' + esc(t) + "</div>" +
+      '<div class="acts"><button class="mini danger" data-rm="' + i + '" data-tag="' + tag + '">apagar</button></div>';
+    ul.appendChild(li);
+  });
+}
+function bindLista(inputId, btnId, ulId, arr, tag){
+  function add(){
+    var v = $(inputId).value.trim(); if(!v) return;
+    arr.push(v); $(inputId).value = ""; renderLista($(ulId), arr, tag); $(inputId).focus();
+  }
+  $(btnId).addEventListener("click", add);
+  $(inputId).addEventListener("keydown", function(e){ if(e.key==="Enter") add(); });
+  $(ulId).addEventListener("click", function(e){
+    var i = e.target.getAttribute("data-rm");
+    if(i !== null && i !== undefined){ arr.splice(parseInt(i,10),1); renderLista($(ulId), arr, tag); }
+  });
+}
+bindLista("dTesteIn","dTesteAdd","listaTestes", testes, "t");
+bindLista("dPassoIn","dPassoAdd","listaPassos", passos, "p");
+
+function renderSelectChamados(){
+  var sel = $("dChamado"); var atual = sel.value;
+  sel.innerHTML = '<option value="">—</option>';
+  chamados.forEach(function(c){
+    var o = document.createElement("option");
+    o.value = c.id; o.textContent = (c.titulo || c.id) + " · " + (c.empresa||"");
+    sel.appendChild(o);
+  });
+  sel.value = atual;
+}
+function textoDoc(){
+  var linhas = [];
+  if(testes.length){ linhas.push("TESTES REALIZADOS"); testes.forEach(function(t,i){ linhas.push((i+1)+". "+t); }); linhas.push(""); }
+  if(passos.length){ linhas.push("PRÓXIMOS PASSOS"); passos.forEach(function(t,i){ linhas.push((i+1)+". "+t); }); linhas.push(""); }
+  if($("dResolucao").value.trim()){ linhas.push("RESOLUÇÃO"); linhas.push($("dResolucao").value.trim()); }
+  var m = $("dPausaMotivo").value.trim();
+  if(m){ linhas.push(""); linhas.push("PAUSA: " + m +
+    ($("dPausaIni").value ? " · de " + $("dPausaIni").value : "") +
+    ($("dPausaFim").value ? " até " + $("dPausaFim").value : "")); }
+  return linhas.join("\n");
+}
+$("btnCopiarDoc").addEventListener("click", function(){
+  var txt = textoDoc();
+  if(!txt){ toast("Nada para copiar ainda."); return; }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(
+      function(){ toast("Copiado — cole no campo Resolução do Bitrix."); },
+      function(){ fallbackCopy(txt); });
+  } else { fallbackCopy(txt); }
+});
+function fallbackCopy(txt){
+  var ta = document.createElement("textarea");
+  ta.value = txt; ta.style.position="fixed"; ta.style.opacity="0";
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand("copy"); toast("Copiado."); }
+  catch(e){ toast("Não consegui copiar — selecione o texto manualmente."); }
+  ta.remove();
+}
+$("btnSalvarDoc").addEventListener("click", function(){
+  var id = $("dChamado").value;
+  if(!id){ toast("Escolha o chamado primeiro."); return; }
+  for(var i=0;i<chamados.length;i++){
+    if(chamados[i].id === id){
+      chamados[i].doc = { testes: testes.slice(), passos: passos.slice(),
+        resolucao: $("dResolucao").value,
+        pausa: { motivo:$("dPausaMotivo").value, ini:$("dPausaIni").value, fim:$("dPausaFim").value } };
+      break;
+    }
+  }
+  save(K.chamados, chamados);
+  toast("Documentação guardada nesta página.");
+});
+
+/* ---------------- conexão ---------------- */
+(function(){ var w = load(K.wh, ""); if(w) { $("wh").value = w; marcarConn(true); } })();
+function marcarConn(ok){ $("connDot").className = "dot " + (ok ? "on" : "off"); }
+$("btnMostrar").addEventListener("click", function(){
+  $("wh").type = $("wh").type === "password" ? "text" : "password";
+});
+$("btnEsquecer").addEventListener("click", function(){
+  $("wh").value = ""; save(K.wh, ""); marcarConn(false);
+  $("diag").textContent = "Webhook apagado deste navegador.";
+});
+$("btnTestar").addEventListener("click", function(){
+  var url = $("wh").value.trim().replace(/\/+$/, "");
+  var d = $("diag");
+  if(!url){ d.textContent = "Cole a URL do webhook primeiro."; return; }
+  if(!/^https:\/\/[^/]+\/rest\/\d+\/[^/]+$/.test(url)){
+    d.textContent = "A URL não tem o formato esperado.\nEsperado: https://SEU-PORTAL.bitrix24.com.br/rest/<id>/<token>";
+    return;
+  }
+  save(K.wh, url);
+  d.textContent = "Testando...\n\n1/3 chamando profile...";
+  var ehFile = location.protocol === "file:";
+
+  fetch(url + "/profile.json", {method:"POST"})
+    .then(function(r){ return r.json().then(function(j){ return {st:r.status, j:j}; }); })
+    .then(function(res){
+      if(res.j && res.j.error){
+        marcarConn(false);
+        d.textContent = "1/3 profile — RECUSADO\n\nerro: " + res.j.error +
+          "\ndescrição: " + (res.j.error_description || "—") +
+          "\n\nO webhook respondeu, então a rede e o CORS estão de pé.\n" +
+          "O problema é o token ou a permissão: gere outro webhook de entrada com escopo CRM.";
+        return;
+      }
+      var nome = res.j && res.j.result ? (res.j.result.NAME + " " + (res.j.result.LAST_NAME||"")) : "?";
+      d.textContent = "1/3 profile — OK, conectado como " + nome +
+        "\n\n2/3 listando chamados (entityTypeId 1032)...";
+      return fetch(url + "/crm.item.list.json", {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({entityTypeId:1032, start:0})
+        })
+        .then(function(r){ return r.json(); })
+        .then(function(j){
+          if(j.error){
+            marcarConn(true);
+            d.textContent += "\n\n2/3 chamados — RECUSADO\nerro: " + j.error +
+              "\ndescrição: " + (j.error_description||"—") +
+              "\n\nA conexão funciona, mas esse webhook não enxerga o processo 1032.\n" +
+              "Marque o escopo CRM nele, ou me diga o erro que eu ajusto o entityTypeId.";
+            return;
+          }
+          var itens = (j.result && j.result.items) ? j.result.items : [];
+          marcarConn(true);
+          d.textContent += "\n\n2/3 chamados — OK, " + itens.length + " itens nesta página" +
+            "\n\n3/3 tudo pronto. Me avise que eu ligo o painel nesses dados.";
+        });
+    })
+    .catch(function(err){
+      marcarConn(false);
+      d.textContent = "1/3 profile — FALHOU antes de chegar ao Bitrix\n\n" + err +
+        "\n\nIsso quase sempre é CORS" + (ehFile ? ", e esta página está aberta como arquivo (file://), que é o caso mais comum." : ".") +
+        "\n\nSaída: sirva a página por localhost. Na pasta do arquivo, rode\n" +
+        "   python -m http.server 8000\n" +
+        "e abra http://localhost:8000/chamados-ti-prospera.html\n\n" +
+        "Se continuar falhando por localhost, me mande este texto que eu monto a saída sem navegador.";
+    });
+});
+
+/* ---------------- início ---------------- */
+renderFila(); renderPainel(); renderSelectChamados();
+$("capQuem").focus();
+})();
+</script>
+</body>
+</html>

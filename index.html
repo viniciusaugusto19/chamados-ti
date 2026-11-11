@@ -36,7 +36,7 @@
       <input type="text" id="capOque" placeholder="O que foi feito — 3 ou 4 palavras" autocomplete="off">
       <button class="primary" id="capAdd" type="button">Anotar</button>
     </div>
-    <div class="hint">Enter em qualquer um dos campos também salva.</div>
+    <div class="hint">Enter em qualquer um dos campos também salva. O que já virou chamado fica marcado e sai da contagem da aba.</div>
     <ul class="queue" id="fila"></ul>
     <div class="empty" id="filaVazia">Nada na fila. O que você anotar aqui aparece nesta lista.</div>
   </div>
@@ -80,6 +80,7 @@
       </label>
       <span class="hint" id="statusCarga" style="margin-top:0">Conecte o Bitrix para puxar os chamados reais.</span>
     </div>
+    <div class="aviso" id="avisoNomes" hidden></div>
   </div>
 
   <div class="tablewrap">
@@ -300,7 +301,8 @@
       <label for="wh">URL do webhook</label>
       <input type="password" id="wh" placeholder="https://straylight.bitrix24.com.br/rest/1/xxxxxxxxxxxx/" autocomplete="off">
       <div class="hint">
-        No Bitrix: <b>Aplicativos → Webhooks → Webhook de entrada</b>, com permissão de CRM.
+        No Bitrix: <b>Aplicativos → Webhooks → Webhook de entrada</b>, com permissão de <b>CRM</b> e de <b>Usuários (user)</b>.
+        Sem o escopo de usuários, quem abriu e o responsável aparecem como número em vez de nome.
         A URL fica guardada só neste navegador, na sua máquina — não vai para lugar nenhum e não está dentro deste arquivo.
       </div>
     </div>

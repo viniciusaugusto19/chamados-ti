@@ -53,6 +53,7 @@ function limparForm(){
   $("dResolucao").value = ""; $("dPausaMotivo").value = "";
   $("dPausaIni").value = ""; $("dPausaFim").value = "";
   $("dContexto").hidden = true; $("cardEtapa").hidden = true;
+  if($("cardHistorico")) $("cardHistorico").hidden = true;
   $("semChamado").hidden = false;
   $("btnEncerrar").hidden = true; $("docAviso").textContent = "";
   itemAtual = null;
@@ -119,9 +120,53 @@ function pintarChamado(d){
   $("tkMeta").innerHTML =
     metaLinha("Categoria", d.categoria) +
     metaLinha("Prioridade", rotuloCurto(d.prioridade)) +
+    metaLinha("Aberto por", d.criadoPorTxt) +
     metaLinha("Aberto em", d.abertoTxt) +
-    metaLinha("Etapa atual", d.etapa);
+    metaLinha("Responsável", d.responsavelTxt) +
+    metaLinha("Etapa atual", d.etapa) +
+    metaLinha("Nesta etapa desde", d.movidoTxt) +
+    metaLinha("Última alteração", d.atualizadoTxt);
   $("dContexto").hidden = false;
+}
+/* linha do tempo das etapas, montada depois que o chamado já apareceu */
+function pintarHistorico(id){
+  var caixa = $("cardHistorico"), alvo = $("histLista");
+  if(!caixa || !alvo) return;
+  caixa.hidden = false;
+  alvo.innerHTML = '<div class="vazio-mini">Buscando no Bitrix...</div>';
+  historicoEtapas(id).then(function(h){
+    if(h && h.erro){
+      /* o portal não respondeu: dizer o porquê vale mais que sumir em silêncio */
+      alvo.innerHTML = '<div class="vazio-mini">O portal não devolveu o histórico: ' +
+        esc(h.erro) + "</div>";
+      return;
+    }
+    if(!h.length){
+      alvo.innerHTML = '<div class="vazio-mini">Sem movimentações registradas.</div>';
+      return;
+    }
+    alvo.innerHTML = h.map(function(p){
+      return '<li><span class="hist-quando">' + esc(dataHora(p.quando)) + "</span>" +
+             '<span class="hist-etapa">' + esc(p.etapa) + "</span></li>";
+    }).join("");
+    /* troca de responsável é tentativa: só aparece se o portal devolver algo */
+    historicoResponsaveis(id).then(function(r){
+      if(r && r.erro) return anotaHistorico("A troca de responsável não é exposta pelo portal.");
+      if(!r.length)   return anotaHistorico("Sem troca de responsável registrada.");
+      var ids = r.map(function(x){ return x.value || x.VALUE; });
+      carregarUsuarios(ids).then(function(){
+        alvo.insertAdjacentHTML("beforeend", r.map(function(x){
+          return '<li><span class="hist-quando">' + esc(dataHora(x.createdTime || x.CREATED_TIME)) +
+                 "</span><span class=\"hist-etapa\">responsável: " +
+                 esc(labelUsuario(x.value || x.VALUE)) + "</span></li>";
+        }).join(""));
+      });
+    });
+  });
+}
+function anotaHistorico(txt){
+  var alvo = $("histLista");
+  if(alvo) alvo.insertAdjacentHTML("afterend", '<div class="vazio-mini">' + esc(txt) + "</div>");
 }
 /* traz o chamado inteiro do Bitrix e preenche o formulário */
 function carregarItem(id){
@@ -150,7 +195,9 @@ function carregarItem(id){
   var c = B.campo;
   Promise.all([
     bitrixCall("crm.item.get", {entityTypeId: B.tipo, id: id}),
-    carregarMotivosPausa()
+    carregarMotivosPausa(),
+    /* nomes de quem abriu, de quem é responsável e de quem mexeu por último */
+    carregarUsuarios([local.criadoPor, local.responsavelId, local.atualizadoPor, local.movidoPor])
   ]).then(function(res){
     var it = res[0].result.item;
     itemAtual = it;
@@ -173,13 +220,20 @@ function carregarItem(id){
       prioridade: it[c.prioridade],
       etapa: et.nome || it.stageId,
       detalhes: it[c.detalhes],
-      abertoTxt: it.createdTime ? new Date(it.createdTime).toLocaleString("pt-BR") : "—",
+      abertoTxt: dataHora(it.createdTime) || "—",
+      criadoPorTxt: labelUsuario(it.createdBy),
+      responsavelTxt: labelUsuario(it.assignedById),
+      movidoTxt: dataHora(it.movedTime),
+      atualizadoTxt: it.updatedTime
+        ? dataHora(it.updatedTime) + (labelUsuario(it.updatedBy) ? " por " + labelUsuario(it.updatedBy) : "")
+        : "",
       situacaoCalc: situacao({
         prioridade: it[c.prioridade], aberto: it.createdTime,
         etapa: et.nome, semantica: et.semantica
       })
     });
     montarEtapaSelect(it.stageId);
+    pintarHistorico(it.id);
     $("btnEncerrar").hidden = !etapasLista.some(function(e){ return e.semantica === "S"; });
     $("docAviso").textContent = "";
   }).catch(function(e){
@@ -384,7 +438,7 @@ $("btnTestar").addEventListener("click", function(){
         "\n\nIsso quase sempre é CORS" + (ehFile ? ", e esta página está aberta como arquivo (file://), que é o caso mais comum." : ".") +
         "\n\nSaída: sirva a página por localhost. Na pasta do arquivo, rode\n" +
         "   python -m http.server 8000\n" +
-        "e abra http://localhost:8000/chamados-ti-prospera.html\n\n" +
+        "e abra http://localhost:8000/index.html\n\n" +
         "Se continuar falhando por localhost, me mande este texto que eu monto a saída sem navegador.";
     });
 });
@@ -403,6 +457,3 @@ $("tbChamados").addEventListener("click", function(e){
 var jaCarregou = false;
 $("btnCarregar").addEventListener("click", function(){ jaCarregou = true; carregarChamados(); });
 $("chkConcluidos").addEventListener("change", renderPainel);
-document.querySelector('nav.tabs button[data-tab="painel"]').addEventListener("click", function(){
-  if(!jaCarregou && load(K.wh, "")){ jaCarregou = true; carregarChamados(); }
-});

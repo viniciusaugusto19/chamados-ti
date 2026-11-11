@@ -457,3 +457,6 @@ $("tbChamados").addEventListener("click", function(e){
 var jaCarregou = false;
 $("btnCarregar").addEventListener("click", function(){ jaCarregou = true; carregarChamados(); });
 $("chkConcluidos").addEventListener("change", renderPainel);
+document.querySelector('nav.tabs button[data-tab="painel"]').addEventListener("click", function(){
+  if(!jaCarregou && load(K.wh, "")){ jaCarregou = true; carregarChamados(); }
+});
